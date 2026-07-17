@@ -3,4 +3,8 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     status: str
-    message: str
+    service: str
+    version: str
+    database: str
+    qdrant: str
+    ollama: str

@@ -16,3 +16,23 @@
     color: #c62828;
   }
 }
+
+.status-detail {
+  margin: 0.5rem 0 0;
+  color: #616161;
+  font-size: 0.875rem;
+}
+
+.services {
+  margin: 0.75rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.875rem;
+
+  .badge {
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background: #fff3e0;
+    color: #e65100;
+    font-weight: 600;
+  }
+}

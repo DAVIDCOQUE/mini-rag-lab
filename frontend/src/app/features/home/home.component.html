@@ -15,6 +15,15 @@
             <mat-icon>check_circle</mat-icon>
             <span>Backend conectado correctamente</span>
           </div>
+          <p class="status-detail">{{ detail() }}</p>
+
+          @if (health(); as h) {
+            <ul class="services">
+              <li>PostgreSQL: <span class="badge">{{ h.database }}</span></li>
+              <li>Qdrant: <span class="badge">{{ h.qdrant }}</span></li>
+              <li>Ollama: <span class="badge">{{ h.ollama }}</span></li>
+            </ul>
+          }
         }
         @case ('error') {
           <div class="status status--error">

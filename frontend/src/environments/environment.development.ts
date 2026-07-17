@@ -1,4 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8000',
+  // Vacio = rutas relativas servidas por el proxy de Angular (proxy.conf.json) hacia FastAPI.
+  // Evita problemas de CORS en desarrollo al quedar todo en el mismo origen.
+  apiUrl: '',
 };
