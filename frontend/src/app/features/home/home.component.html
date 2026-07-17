@@ -19,9 +19,18 @@
 
           @if (health(); as h) {
             <ul class="services">
-              <li>PostgreSQL: <span class="badge">{{ h.database }}</span></li>
-              <li>Qdrant: <span class="badge">{{ h.qdrant }}</span></li>
-              <li>Ollama: <span class="badge">{{ h.ollama }}</span></li>
+              <li>
+                PostgreSQL:
+                <span class="badge" [class.badge--ok]="h.database === 'connected'" [class.badge--down]="h.database !== 'connected'">{{ h.database }}</span>
+              </li>
+              <li>
+                Qdrant:
+                <span class="badge" [class.badge--ok]="h.qdrant === 'connected'" [class.badge--down]="h.qdrant !== 'connected'">{{ h.qdrant }}</span>
+              </li>
+              <li>
+                Ollama:
+                <span class="badge" [class.badge--ok]="h.ollama === 'connected'" [class.badge--down]="h.ollama !== 'connected'">{{ h.ollama }}</span>
+              </li>
             </ul>
           }
         }
