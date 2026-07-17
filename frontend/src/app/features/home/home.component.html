@@ -1,0 +1,28 @@
+<div class="p-4">
+  <h1 class="h4 mb-3">Mini RAG Lab</h1>
+
+  <mat-card class="status-card" appearance="outlined">
+    <mat-card-content>
+      @switch (state()) {
+        @case ('loading') {
+          <div class="status status--loading">
+            <mat-spinner diameter="24" />
+            <span>Verificando conexión con el backend…</span>
+          </div>
+        }
+        @case ('ok') {
+          <div class="status status--ok">
+            <mat-icon>check_circle</mat-icon>
+            <span>Backend conectado correctamente</span>
+          </div>
+        }
+        @case ('error') {
+          <div class="status status--error">
+            <mat-icon>error</mat-icon>
+            <span>{{ detail() }}</span>
+          </div>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

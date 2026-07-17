@@ -1,0 +1,28 @@
+# ---------- Python / backend ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.env
+.env
+.env.*
+
+# ---------- Node / frontend ----------
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+
+# ---------- Qdrant (binario + datos) ----------
+qdrant-x86_64-pc-windows-msvc/qdrant.exe
+qdrant-x86_64-pc-windows-msvc/storage/
+qdrant-x86_64-pc-windows-msvc/snapshots/
+
+# ---------- IDE / OS ----------
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

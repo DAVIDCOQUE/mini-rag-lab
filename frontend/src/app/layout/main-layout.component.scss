@@ -1,0 +1,27 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
+  span {
+    margin-left: 0.5rem;
+  }
+}
+
+.container {
+  flex: 1;
+}
+
+.sidenav {
+  width: 240px;
+}
+
+.content {
+  height: 100%;
+}
