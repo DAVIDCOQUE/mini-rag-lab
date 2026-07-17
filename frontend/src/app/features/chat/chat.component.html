@@ -1,0 +1,62 @@
+<div class="chat">
+  <header class="chat__header">
+    <h1 class="chat__title">Chat</h1>
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="clear()"
+      [disabled]="loading() || !hasMessages()"
+    >
+      <mat-icon>delete_sweep</mat-icon>
+      Limpiar chat
+    </button>
+  </header>
+
+  <div class="chat__messages" #scrollContainer>
+    @if (!hasMessages() && !loading()) {
+      <div class="chat__empty">
+        <mat-icon>forum</mat-icon>
+        <p>Escribe un mensaje para comenzar a conversar con el modelo.</p>
+      </div>
+    }
+
+    @for (msg of messages(); track msg.id) {
+      <div class="bubble" [class.bubble--user]="msg.role === 'user'">
+        <div class="bubble__content">{{ msg.content }}</div>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="bubble">
+        <div class="bubble__content bubble__content--typing">
+          <span class="typing">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          </span>
+          Escribiendo…
+        </div>
+      </div>
+    }
+  </div>
+
+  <form class="chat__composer" (ngSubmit)="send()">
+    <textarea
+      class="chat__input"
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="2"
+      cdkAutosizeMaxRows="8"
+      name="draft"
+      [(ngModel)]="draft"
+      (keydown)="onKeydown($event)"
+      placeholder="Escribe tu mensaje…  (Enter para enviar · Shift+Enter para nueva línea)"
+    ></textarea>
+    <button
+      mat-fab
+      color="primary"
+      type="submit"
+      aria-label="Enviar mensaje"
+      [disabled]="loading() || !draft.trim()"
+    >
+      <mat-icon>send</mat-icon>
+    </button>
+  </form>
+</div>

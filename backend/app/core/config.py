@@ -36,6 +36,7 @@ class Settings(BaseSettings):
 
     # --- Ollama ---
     OLLAMA_URL: str = "http://localhost:11434"
+    LLM_MODEL: str = "qwen2.5:7b"
 
     # --- CORS: origenes del frontend Angular (formato JSON en .env) ---
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:4200"]
