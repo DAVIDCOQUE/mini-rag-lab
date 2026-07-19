@@ -9,6 +9,9 @@ env/
 .env.*
 !.env.example
 
+# Archivos subidos por el usuario
+backend/storage/
+
 # ---------- Node / frontend ----------
 node_modules/
 dist/

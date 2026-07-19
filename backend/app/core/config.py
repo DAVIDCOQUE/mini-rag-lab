@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     OLLAMA_URL: str = "http://localhost:11434"
     LLM_MODEL: str = "qwen2.5:7b"
 
+    # --- Almacenamiento de documentos ---
+    STORAGE_DIR: str = "storage"
+    MAX_UPLOAD_MB: int = 20
+
     # --- CORS: origenes del frontend Angular (formato JSON en .env) ---
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:4200"]
 

@@ -1,0 +1,126 @@
+<div class="documents">
+  <header class="documents__header">
+    <h1 class="documents__title">Documentos</h1>
+    <div class="documents__actions">
+      <button mat-flat-button color="primary" type="button" (click)="openUpload()" [disabled]="busy()">
+        <mat-icon>upload_file</mat-icon>
+        Subir documento
+      </button>
+    </div>
+  </header>
+
+  @if (loading() || busy()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <div class="documents__table-wrap">
+    <table mat-table [dataSource]="documents()" class="documents__table">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Nombre</th>
+        <td mat-cell *matCellDef="let doc">
+          <mat-icon class="file-icon">picture_as_pdf</mat-icon>
+          <span class="file-name" [title]="doc.original_name">{{ doc.original_name }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="size">
+        <th mat-header-cell *matHeaderCellDef>Tamaño</th>
+        <td mat-cell *matCellDef="let doc">{{ formatSize(doc.size_bytes) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let doc">
+          <span class="badge badge--{{ doc.status.toLowerCase() }}">{{ statusLabel(doc.status) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef>Creado</th>
+        <td mat-cell *matCellDef="let doc">{{ doc.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="col-actions">Acciones</th>
+        <td mat-cell *matCellDef="let doc" class="col-actions">
+          <button mat-icon-button aria-label="Editar" (click)="openEdit(doc)" [disabled]="busy()">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button aria-label="Eliminar" (click)="openDelete(doc)" [disabled]="busy()">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    @if (!loading() && documents().length === 0) {
+      <div class="documents__empty">
+        <mat-icon>folder_open</mat-icon>
+        <p>Aún no hay documentos. Sube un PDF para empezar.</p>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Dialogo: Subir documento (archivo + nombre visible opcional) -->
+<ng-template #uploadDialog>
+  <h2 mat-dialog-title>Subir documento</h2>
+  <mat-dialog-content>
+    <button mat-stroked-button type="button" (click)="uploadInput.click()">
+      <mat-icon>attach_file</mat-icon>
+      {{ uploadFile() ? uploadFile()!.name : 'Seleccionar PDF' }}
+    </button>
+    <input
+      #uploadInput
+      type="file"
+      accept="application/pdf"
+      hidden
+      (change)="onUploadFileSelected($event)"
+    />
+
+    <mat-form-field appearance="outline" class="dialog-field">
+      <mat-label>Nombre visible</mat-label>
+      <input matInput [(ngModel)]="uploadName" placeholder="Nombre del documento" />
+      <mat-hint>Opcional. Por defecto se usa el nombre del archivo.</mat-hint>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">Cancelar</button>
+    <button mat-flat-button color="primary" [mat-dialog-close]="true" [disabled]="!uploadFile()">
+      Subir
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Dialogo: Editar documento -->
+<ng-template #editDialog>
+  <h2 mat-dialog-title>Editar documento</h2>
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="dialog-field">
+      <mat-label>Nombre visible</mat-label>
+      <input matInput [(ngModel)]="editName" />
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">Cancelar</button>
+    <button mat-flat-button color="primary" [mat-dialog-close]="true" [disabled]="!editName.trim()">
+      Guardar
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Dialogo: Confirmar eliminación -->
+<ng-template #deleteDialog>
+  <h2 mat-dialog-title>Eliminar documento</h2>
+  <mat-dialog-content>
+    <p>¿Seguro que deseas eliminar <strong>{{ deleteTarget()?.original_name }}</strong>?</p>
+    <p class="dialog-hint">Se borrará el archivo y su registro. Esta acción no se puede deshacer.</p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">Cancelar</button>
+    <button mat-flat-button color="warn" [mat-dialog-close]="true">Eliminar</button>
+  </mat-dialog-actions>
+</ng-template>
