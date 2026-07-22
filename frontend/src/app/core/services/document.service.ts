@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { DocumentItem, DocumentUpdate } from '../models/document.model';
+import { DocumentItem, DocumentUpdate, ProcessingResult } from '../models/document.model';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
@@ -30,5 +30,9 @@ export class DocumentService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.endpoint}/${id}`);
+  }
+
+  process(id: string): Observable<ProcessingResult> {
+    return this.http.post<ProcessingResult>(`${this.endpoint}/${id}/process`, {});
   }
 }

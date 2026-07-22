@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     STORAGE_DIR: str = "storage"
     MAX_UPLOAD_MB: int = 20
 
+    # --- Procesamiento / chunking ---
+    CHUNK_SIZE: int = 1000
+    CHUNK_OVERLAP: int = 200
+
     # --- CORS: origenes del frontend Angular (formato JSON en .env) ---
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:4200"]
 

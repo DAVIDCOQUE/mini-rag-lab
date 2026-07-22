@@ -43,10 +43,13 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef class="col-actions">Acciones</th>
         <td mat-cell *matCellDef="let doc" class="col-actions">
-          <button mat-icon-button aria-label="Editar" (click)="openEdit(doc)" [disabled]="busy()">
+          <button mat-icon-button aria-label="Procesar" title="Procesar documento" (click)="openProcess(doc)" [disabled]="busy()">
+            <mat-icon>bolt</mat-icon>
+          </button>
+          <button mat-icon-button aria-label="Editar" title="Editar" (click)="openEdit(doc)" [disabled]="busy()">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button aria-label="Eliminar" (click)="openDelete(doc)" [disabled]="busy()">
+          <button mat-icon-button aria-label="Eliminar" title="Eliminar" (click)="openDelete(doc)" [disabled]="busy()">
             <mat-icon>delete</mat-icon>
           </button>
         </td>
@@ -109,6 +112,48 @@
     <button mat-flat-button color="primary" [mat-dialog-close]="true" [disabled]="!editName.trim()">
       Guardar
     </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Dialogo: Resultado del procesamiento -->
+<ng-template #processDialog>
+  <h2 mat-dialog-title>Procesamiento — {{ processTarget()?.original_name }}</h2>
+  <mat-dialog-content>
+    @if (processResult(); as result) {
+      <div class="proc-stats">
+        <div class="proc-stat">
+          <span class="proc-stat__value">{{ result.total_pages }}</span>
+          <span class="proc-stat__label">Páginas</span>
+        </div>
+        <div class="proc-stat">
+          <span class="proc-stat__value">{{ result.total_characters }}</span>
+          <span class="proc-stat__label">Caracteres</span>
+        </div>
+        <div class="proc-stat">
+          <span class="proc-stat__value">{{ result.total_chunks }}</span>
+          <span class="proc-stat__label">Chunks</span>
+        </div>
+      </div>
+
+      <h3 class="proc-subtitle">Chunks generados</h3>
+      <div class="proc-chunks">
+        @for (chunk of result.chunks; track chunk.index) {
+          <div class="proc-chunk">
+            <div class="proc-chunk__header">
+              <span class="proc-chunk__num">
+                Chunk #{{ chunk.index }}
+                <span class="proc-chunk__page">Página {{ chunk.page }}</span>
+              </span>
+              <span class="proc-chunk__chars">{{ chunk.characters }} caracteres</span>
+            </div>
+            <pre class="proc-chunk__content">{{ chunk.content }}</pre>
+          </div>
+        }
+      </div>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="true">Cerrar</button>
   </mat-dialog-actions>
 </ng-template>
 

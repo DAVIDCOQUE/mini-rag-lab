@@ -17,7 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 
-import { DocumentItem, DocumentStatus } from '../../core/models/document.model';
+import { DocumentItem, DocumentStatus, ProcessingResult } from '../../core/models/document.model';
 import { DocumentService } from '../../core/services/document.service';
 
 const STATUS_LABELS: Record<DocumentStatus, string> = {
@@ -60,10 +60,13 @@ export class DocumentsComponent {
   uploadName = '';
   editName = '';
   readonly deleteTarget = signal<DocumentItem | null>(null);
+  readonly processTarget = signal<DocumentItem | null>(null);
+  readonly processResult = signal<ProcessingResult | null>(null);
 
   private readonly uploadDialog = viewChild.required<TemplateRef<unknown>>('uploadDialog');
   private readonly editDialog = viewChild.required<TemplateRef<unknown>>('editDialog');
   private readonly deleteDialog = viewChild.required<TemplateRef<unknown>>('deleteDialog');
+  private readonly processDialog = viewChild.required<TemplateRef<unknown>>('processDialog');
 
   constructor() {
     this.refresh();
@@ -140,6 +143,23 @@ export class DocumentsComponent {
           error: () => this.fail('No se pudo eliminar el documento.'),
         });
       });
+  }
+
+  // --- Procesar documento (extraer texto + chunking) ---
+  openProcess(doc: DocumentItem): void {
+    this.busy.set(true);
+    this.service.process(doc.id).subscribe({
+      next: (result) => {
+        this.busy.set(false);
+        this.processTarget.set(doc);
+        this.processResult.set(result);
+        this.dialog.open(this.processDialog(), { width: '760px', maxHeight: '85vh' });
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.notify(err?.error?.detail ?? 'No se pudo procesar el documento.');
+      },
+    });
   }
 
   statusLabel(status: DocumentStatus): string {
