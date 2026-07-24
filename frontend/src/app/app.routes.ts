@@ -24,9 +24,9 @@ export const routes: Routes = [
           import('./features/documents/documents.component').then((m) => m.DocumentsComponent),
       },
       {
-        path: 'catalog',
+        path: 'search',
         loadComponent: () =>
-          import('./features/catalog/catalog.component').then((m) => m.CatalogComponent),
+          import('./features/search/search.component').then((m) => m.SearchComponent),
       },
     ],
   },

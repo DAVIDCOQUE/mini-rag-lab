@@ -19,10 +19,11 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 
-# ---------- Qdrant (binario + datos) ----------
+# ---------- Qdrant (binario + datos + panel web) ----------
 qdrant-x86_64-pc-windows-msvc/qdrant.exe
 qdrant-x86_64-pc-windows-msvc/storage/
 qdrant-x86_64-pc-windows-msvc/snapshots/
+qdrant-x86_64-pc-windows-msvc/static/
 
 # ---------- IDE / OS ----------
 .vscode/

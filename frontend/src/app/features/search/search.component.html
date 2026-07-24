@@ -1,0 +1,45 @@
+<div class="search">
+  <header class="search__header">
+    <h1 class="search__title">Búsqueda semántica</h1>
+    <form class="search__box" (ngSubmit)="search()">
+      <input
+        class="search__input"
+        type="text"
+        name="query"
+        [(ngModel)]="query"
+        placeholder="Escribe una pregunta o tema para buscar en los documentos indexados…"
+      />
+      <button mat-flat-button color="primary" type="submit" [disabled]="loading() || !query.trim()">
+        <mat-icon>search</mat-icon>
+        Buscar
+      </button>
+    </form>
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <div class="search__results">
+    @if (searched() && results().length === 0 && !loading()) {
+      <div class="search__empty">
+        <mat-icon>search_off</mat-icon>
+        <p>Sin resultados. ¿Indexaste algún documento?</p>
+      </div>
+    }
+
+    @for (item of results(); track item.chunk_index + '-' + item.document_id) {
+      <div class="result">
+        <div class="result__header">
+          <span class="result__meta">
+            <mat-icon class="result__icon">description</mat-icon>
+            Página {{ item.page }} · chunk #{{ item.chunk_index }}
+          </span>
+          <span class="result__score">{{ scorePercent(item.score) }}% similitud</span>
+        </div>
+        <p class="result__content">{{ item.content }}</p>
+        <span class="result__doc">Documento: {{ item.document_id }}</span>
+      </div>
+    }
+  </div>
+</div>

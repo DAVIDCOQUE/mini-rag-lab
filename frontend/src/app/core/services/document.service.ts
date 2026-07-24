@@ -3,7 +3,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { DocumentItem, DocumentUpdate, ProcessingResult } from '../models/document.model';
+import {
+  DocumentItem,
+  DocumentUpdate,
+  IndexedChunks,
+  IndexResult,
+  ProcessingResult,
+} from '../models/document.model';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
@@ -34,5 +40,13 @@ export class DocumentService {
 
   process(id: string): Observable<ProcessingResult> {
     return this.http.post<ProcessingResult>(`${this.endpoint}/${id}/process`, {});
+  }
+
+  index(id: string): Observable<IndexResult> {
+    return this.http.post<IndexResult>(`${this.endpoint}/${id}/index`, {});
+  }
+
+  indexedChunks(id: string): Observable<IndexedChunks> {
+    return this.http.get<IndexedChunks>(`${this.endpoint}/${id}/chunks`);
   }
 }

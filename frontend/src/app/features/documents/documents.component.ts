@@ -17,7 +17,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 
-import { DocumentItem, DocumentStatus, ProcessingResult } from '../../core/models/document.model';
+import {
+  DocumentItem,
+  DocumentStatus,
+  IndexedChunks,
+  ProcessingResult,
+} from '../../core/models/document.model';
 import { DocumentService } from '../../core/services/document.service';
 
 const STATUS_LABELS: Record<DocumentStatus, string> = {
@@ -62,11 +67,14 @@ export class DocumentsComponent {
   readonly deleteTarget = signal<DocumentItem | null>(null);
   readonly processTarget = signal<DocumentItem | null>(null);
   readonly processResult = signal<ProcessingResult | null>(null);
+  readonly indexedTarget = signal<DocumentItem | null>(null);
+  readonly indexedResult = signal<IndexedChunks | null>(null);
 
   private readonly uploadDialog = viewChild.required<TemplateRef<unknown>>('uploadDialog');
   private readonly editDialog = viewChild.required<TemplateRef<unknown>>('editDialog');
   private readonly deleteDialog = viewChild.required<TemplateRef<unknown>>('deleteDialog');
   private readonly processDialog = viewChild.required<TemplateRef<unknown>>('processDialog');
+  private readonly indexedDialog = viewChild.required<TemplateRef<unknown>>('indexedDialog');
 
   constructor() {
     this.refresh();
@@ -158,6 +166,40 @@ export class DocumentsComponent {
       error: (err) => {
         this.busy.set(false);
         this.notify(err?.error?.detail ?? 'No se pudo procesar el documento.');
+      },
+    });
+  }
+
+  // --- Indexar documento (embeddings + Qdrant) ---
+  openIndex(doc: DocumentItem): void {
+    this.busy.set(true);
+    this.service.index(doc.id).subscribe({
+      next: (result) => {
+        this.busy.set(false);
+        this.notify(`Indexado: ${result.total_chunks} chunks en Qdrant.`);
+        this.refresh();
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.notify(err?.error?.detail ?? 'No se pudo indexar el documento.');
+        this.refresh();
+      },
+    });
+  }
+
+  // --- Ver lo guardado en la base vectorial (Qdrant) ---
+  openIndexed(doc: DocumentItem): void {
+    this.busy.set(true);
+    this.service.indexedChunks(doc.id).subscribe({
+      next: (result) => {
+        this.busy.set(false);
+        this.indexedTarget.set(doc);
+        this.indexedResult.set(result);
+        this.dialog.open(this.indexedDialog(), { width: '760px', maxHeight: '85vh' });
+      },
+      error: (err) => {
+        this.busy.set(false);
+        this.notify(err?.error?.detail ?? 'No se pudo consultar la base vectorial.');
       },
     });
   }

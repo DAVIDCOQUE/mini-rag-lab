@@ -33,10 +33,13 @@ class Settings(BaseSettings):
     # --- Qdrant ---
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
+    QDRANT_COLLECTION: str = "documents"
 
     # --- Ollama ---
     OLLAMA_URL: str = "http://localhost:11434"
     LLM_MODEL: str = "qwen2.5:7b"
+    EMBEDDING_MODEL: str = "mxbai-embed-large"
+    EMBEDDING_DIM: int = 1024
 
     # --- Almacenamiento de documentos ---
     STORAGE_DIR: str = "storage"

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import chat, documents, health
+from app.api.routes import chat, documents, health, search
 from app.core.config import settings
 
 # Router raiz de la API. Aqui se agregan los routers de cada modulo.
@@ -9,3 +9,4 @@ api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(chat.router, prefix=settings.API_PREFIX)
 api_router.include_router(documents.router, prefix=settings.API_PREFIX)
+api_router.include_router(search.router, prefix=settings.API_PREFIX)

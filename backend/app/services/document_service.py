@@ -86,12 +86,21 @@ def update_document(db: Session, document_id: uuid.UUID, payload: DocumentUpdate
 
 
 def delete_document(db: Session, document_id: uuid.UUID) -> None:
-    """Elimina primero el archivo fisico y luego el registro."""
+    """Elimina el archivo fisico, sus vectores en Qdrant y por ultimo el registro."""
     document = get_document(db, document_id)
     file_path = Path(document.storage_path)
     try:
         file_path.unlink(missing_ok=True)
     except OSError as exc:
         logger.warning("No se pudo eliminar el archivo %s: %s", file_path, exc)
+
+    # Borrar vectores en Qdrant (best-effort: no bloquea el borrado si Qdrant esta caido).
+    try:
+        from app.rag.qdrant_service import QdrantService
+
+        QdrantService().delete_by_document(document.id)
+    except Exception as exc:
+        logger.warning("No se pudieron eliminar los vectores en Qdrant: %s", exc)
+
     repository.delete(db, document)
     logger.info("Documento eliminado: %s", document_id)

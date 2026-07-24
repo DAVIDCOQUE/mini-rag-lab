@@ -35,7 +35,7 @@ export class MainLayoutComponent {
     { path: '/home', label: 'Inicio', icon: 'home' },
     { path: '/chat', label: 'Chat', icon: 'chat' },
     { path: '/documents', label: 'Documents', icon: 'description' },
-    { path: '/catalog', label: 'Catalog', icon: 'category' },
+    { path: '/search', label: 'Buscar', icon: 'search' },
   ];
 
   toggle(): void {

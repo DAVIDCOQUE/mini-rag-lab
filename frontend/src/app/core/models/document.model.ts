@@ -32,3 +32,15 @@ export interface ProcessingResult {
   total_chunks: number;
   chunks: ChunkResult[];
 }
+
+export interface IndexResult {
+  document_id: string;
+  total_chunks: number;
+  status: DocumentStatus;
+}
+
+export interface IndexedChunks {
+  document_id: string;
+  total_chunks: number;
+  chunks: ChunkResult[];
+}

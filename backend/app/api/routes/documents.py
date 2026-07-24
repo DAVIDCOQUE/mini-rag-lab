@@ -5,12 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.schemas.document import DocumentResponse, DocumentUpdate
-from app.schemas.processing import ProcessingResult
+from app.schemas.processing import IndexedChunks, IndexResult, ProcessingResult
 from app.services import document_service as service
 from app.services.document_processing_service import (
     DocumentProcessingService,
     EmptyDocumentError,
     FileMissingError,
+    IndexingError,
 )
 from app.services.document_service import DocumentNotFoundError, InvalidDocumentError
 
@@ -70,3 +71,32 @@ def process_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> P
         )
     except EmptyDocumentError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+
+@router.post("/{document_id}/index", response_model=IndexResult)
+def index_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> IndexResult:
+    try:
+        return processing_service.index_document(db, document_id)
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")
+    except FileMissingError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="El archivo físico no existe."
+        )
+    except EmptyDocumentError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    except IndexingError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+
+
+@router.get("/{document_id}/chunks", response_model=IndexedChunks)
+def get_indexed_chunks(document_id: uuid.UUID, db: Session = Depends(get_db)) -> IndexedChunks:
+    try:
+        return processing_service.get_indexed_chunks(db, document_id)
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No fue posible consultar la base vectorial (¿Qdrant activo?).",
+        )

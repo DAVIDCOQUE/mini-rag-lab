@@ -43,9 +43,17 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef class="col-actions">Acciones</th>
         <td mat-cell *matCellDef="let doc" class="col-actions">
-          <button mat-icon-button aria-label="Procesar" title="Procesar documento" (click)="openProcess(doc)" [disabled]="busy()">
+          <button mat-icon-button aria-label="Procesar" title="Procesar (vista previa de chunks)" (click)="openProcess(doc)" [disabled]="busy()">
             <mat-icon>bolt</mat-icon>
           </button>
+          <button mat-icon-button aria-label="Indexar" title="Indexar (embeddings + Qdrant)" (click)="openIndex(doc)" [disabled]="busy()">
+            <mat-icon>storage</mat-icon>
+          </button>
+          @if (doc.status === 'INDEXED') {
+            <button mat-icon-button aria-label="Ver indexado" title="Ver lo guardado en la base vectorial" (click)="openIndexed(doc)" [disabled]="busy()">
+              <mat-icon>visibility</mat-icon>
+            </button>
+          }
           <button mat-icon-button aria-label="Editar" title="Editar" (click)="openEdit(doc)" [disabled]="busy()">
             <mat-icon>edit</mat-icon>
           </button>
@@ -136,6 +144,35 @@
       </div>
 
       <h3 class="proc-subtitle">Chunks generados</h3>
+      <div class="proc-chunks">
+        @for (chunk of result.chunks; track chunk.index) {
+          <div class="proc-chunk">
+            <div class="proc-chunk__header">
+              <span class="proc-chunk__num">
+                Chunk #{{ chunk.index }}
+                <span class="proc-chunk__page">Página {{ chunk.page }}</span>
+              </span>
+              <span class="proc-chunk__chars">{{ chunk.characters }} caracteres</span>
+            </div>
+            <pre class="proc-chunk__content">{{ chunk.content }}</pre>
+          </div>
+        }
+      </div>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="true">Cerrar</button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- Dialogo: Contenido guardado en la base vectorial (Qdrant) -->
+<ng-template #indexedDialog>
+  <h2 mat-dialog-title>Indexado en Qdrant — {{ indexedTarget()?.original_name }}</h2>
+  <mat-dialog-content>
+    @if (indexedResult(); as result) {
+      <p class="dialog-hint">
+        {{ result.total_chunks }} chunks almacenados como vectores en la colección.
+      </p>
       <div class="proc-chunks">
         @for (chunk of result.chunks; track chunk.index) {
           <div class="proc-chunk">

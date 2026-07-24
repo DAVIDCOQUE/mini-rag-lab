@@ -16,3 +16,15 @@ class ProcessingResult(BaseModel):
     total_characters: int
     total_chunks: int
     chunks: list[ChunkResponse]
+
+
+class IndexResult(BaseModel):
+    document_id: uuid.UUID
+    total_chunks: int
+    status: str
+
+
+class IndexedChunks(BaseModel):
+    document_id: uuid.UUID
+    total_chunks: int
+    chunks: list[ChunkResponse]
