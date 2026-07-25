@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # --- Ollama ---
     OLLAMA_URL: str = "http://localhost:11434"
     LLM_MODEL: str = "qwen2.5:7b"
-    EMBEDDING_MODEL: str = "mxbai-embed-large"
+    EMBEDDING_MODEL: str = "bge-m3"
     EMBEDDING_DIM: int = 1024
 
     # --- Almacenamiento de documentos ---
