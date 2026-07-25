@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "bge-m3"
     EMBEDDING_DIM: int = 1024
 
+    # --- Reranking (cross-encoder via FastEmbed) ---
+    RERANK_ENABLED: bool = True
+    RERANKER_MODEL: str = "jinaai/jina-reranker-v2-base-multilingual"
+    RERANK_CANDIDATES: int = 20  # candidatos que trae el bi-encoder antes de reordenar
+
     # --- Almacenamiento de documentos ---
     STORAGE_DIR: str = "storage"
     MAX_UPLOAD_MB: int = 20

@@ -1,0 +1,30 @@
+[
+  {
+    "question": "¿Cuál es el nombre del acuerdo y en qué fecha fue aprobado?",
+    "expect_contains": "ACUERDO No. 008"
+  },
+  {
+    "question": "¿Qué política se aprueba con este acuerdo?",
+    "expect_contains": "Política de Bienestar Institucional"
+  },
+  {
+    "question": "¿Qué porcentaje del presupuesto se destina a bienestar?",
+    "expect_contains": "2% de su presupuesto"
+  },
+  {
+    "question": "¿Quién preside el Consejo Directivo?",
+    "expect_contains": "Leidy Tatiana Aguilar"
+  },
+  {
+    "question": "¿Quién es el secretario general?",
+    "expect_contains": "Luis Guillermo Betancourt"
+  },
+  {
+    "question": "¿Qué ley regula la autonomía de las instituciones universitarias?",
+    "expect_contains": "Ley 30"
+  },
+  {
+    "question": "¿A qué municipio está adscrita la institución?",
+    "expect_contains": "Santiago de Cali"
+  }
+]
