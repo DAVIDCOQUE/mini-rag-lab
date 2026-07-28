@@ -14,7 +14,7 @@ y la estructura vacía para RAG/documentos. Todavía **no** hay IA, embeddings, 
 | Node.js | 20+ |
 | Angular CLI | 20 |
 | PostgreSQL | 16 (opcional en esta etapa) |
-| Qdrant | binario incluido en `qdrant-x86_64-pc-windows-msvc/` |
+| Qdrant | se descarga con `scripts\setup-qdrant.ps1` |
 | Ollama | (para clases futuras) |
 
 ---
@@ -81,15 +81,43 @@ Al abrir la app debe aparecer: **✅ Backend conectado correctamente** (consumie
 
 ## Cómo ejecutar Qdrant
 
-```bash
-cd qdrant-x86_64-pc-windows-msvc
-qdrant.exe
+El binario **no está versionado en git** (pesa 82 MB y es solo Windows). Hay un script que lo descarga:
+
+```powershell
+# desde la raíz del repo, una sola vez
+.\scripts\setup-qdrant.ps1
+
+# arrancar
+.\qdrant-x86_64-pc-windows-msvc\qdrant.exe
 ```
+
+El script descarga el binario (`v1.18.2`) y el dashboard web (`v0.2.15`) desde GitHub Releases.
+Es idempotente: si ya están, no vuelve a descargar. Para actualizar Qdrant, cambia
+`$QdrantVersion` en el script y borra el `qdrant.exe` anterior.
 
 - REST API: http://localhost:6333
 - Dashboard: http://localhost:6333/dashboard
 
-> Aún no se usa desde el backend; se integrará en clases futuras.
+> En Mac/Linux el script no aplica: descarga el asset correspondiente desde
+> https://github.com/qdrant/qdrant/releases o levanta la imagen `qdrant/qdrant` con Docker.
+
+---
+
+## Base de datos (PostgreSQL)
+
+El repo **no impone** cómo levantar PostgreSQL: instalación local, contenedor Docker o
+instancia remota, lo que prefieras. Solo tiene que ser accesible con las credenciales de
+`backend/.env` (`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`).
+
+Una vez apunte a tu instancia, crea el esquema:
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+> El backend usa SQLAlchemy con el driver `psycopg2`, así que el motor debe ser PostgreSQL;
+> lo abierto es *dónde* corre, no *qué* motor es.
 
 ---
 
@@ -149,6 +177,9 @@ mini-rag-lab/
 │   │   └── shared/              Componentes/pipes/directivas compartidos
 │   ├── src/environments/        apiUrl por entorno
 │   └── proxy.conf.json          Proxy dev → FastAPI
+│
+├── scripts/
+│   └── setup-qdrant.ps1         Descarga el binario de Qdrant + dashboard
 │
 └── qdrant-x86_64-pc-windows-msvc/   Binario y datos de Qdrant (ignorados en git)
 ```
