@@ -1,46 +1,83 @@
-<div class="p-4">
-  <h1 class="h4 mb-3">Mini RAG Lab</h1>
+<div class="page overview enter">
+  <section class="hero">
+    <div class="hero__copy surface surface--accent surface--panel">
+      <span class="eyebrow">{{ copy().eyebrow }}</span>
+      <h2 class="t-display hero__headline">{{ copy().headline }}</h2>
+      <p class="t-body">{{ copy().body }}</p>
 
-  <mat-card class="status-card" appearance="outlined">
-    <mat-card-content>
+      <div class="hero__actions">
+        <a mat-flat-button routerLink="/documents">
+          <mat-icon>upload_file</mat-icon>
+          {{ copy().primary }}
+        </a>
+        <a mat-stroked-button routerLink="/chat">
+          <mat-icon>forum</mat-icon>
+          {{ copy().secondary }}
+        </a>
+      </div>
+    </div>
+
+    <aside class="status surface surface--panel">
+      <span class="eyebrow">{{ copy().statusLabel }}</span>
+
       @switch (state()) {
         @case ('loading') {
-          <div class="status status--loading">
-            <mat-spinner diameter="24" />
-            <span>Verificando conexión con el backend…</span>
+          <div class="status__headline status__headline--muted">
+            <mat-spinner diameter="18" />
+            <span>{{ copy().checking }}</span>
           </div>
         }
         @case ('ok') {
-          <div class="status status--ok">
+          <div class="status__headline status__headline--ok">
             <mat-icon>check_circle</mat-icon>
-            <span>Backend conectado correctamente</span>
+            <span>{{ copy().connected }}</span>
           </div>
-          <p class="status-detail">{{ detail() }}</p>
+          <p class="t-caption status__detail">{{ detail() }}</p>
 
-          @if (health(); as h) {
-            <ul class="services">
-              <li>
-                PostgreSQL:
-                <span class="badge" [class.badge--ok]="h.database === 'connected'" [class.badge--down]="h.database !== 'connected'">{{ h.database }}</span>
-              </li>
-              <li>
-                Qdrant:
-                <span class="badge" [class.badge--ok]="h.qdrant === 'connected'" [class.badge--down]="h.qdrant !== 'connected'">{{ h.qdrant }}</span>
-              </li>
-              <li>
-                Ollama:
-                <span class="badge" [class.badge--ok]="h.ollama === 'connected'" [class.badge--down]="h.ollama !== 'connected'">{{ h.ollama }}</span>
-              </li>
-            </ul>
-          }
+          <div class="status__services">
+            <span class="eyebrow">{{ copy().servicesLabel }}</span>
+            @for (service of services(); track service.label) {
+              <div class="service">
+                <span class="service__name">{{ service.label }}</span>
+                <span class="badge" [class]="isUp(service.value) ? 'badge--ok' : 'badge--danger'">
+                  {{ isUp(service.value) ? copy().connectedValue : service.value }}
+                </span>
+              </div>
+            }
+          </div>
         }
         @case ('error') {
-          <div class="status status--error">
+          <div class="status__headline status__headline--error">
             <mat-icon>error</mat-icon>
             <span>{{ detail() }}</span>
           </div>
         }
       }
-    </mat-card-content>
-  </mat-card>
+    </aside>
+  </section>
+
+  <section class="path">
+    <span class="eyebrow path__label">{{ copy().pathLabel }}</span>
+
+    <div class="path__grid enter-group">
+      @for (card of overviewCards(); track card.route) {
+        <a class="step surface" [routerLink]="card.route">
+          <header class="step__head">
+            <span class="step__icon">
+              <mat-icon>{{ card.icon }}</mat-icon>
+            </span>
+            <span class="step__number">{{ card.step }}</span>
+          </header>
+
+          <div class="step__copy">
+            <span class="eyebrow">{{ card.label }}</span>
+            <h3 class="t-title-3">{{ card.title }}</h3>
+            <p class="t-caption">{{ card.description }}</p>
+          </div>
+
+          <mat-icon class="step__arrow">arrow_forward</mat-icon>
+        </a>
+      }
+    </div>
+  </section>
 </div>

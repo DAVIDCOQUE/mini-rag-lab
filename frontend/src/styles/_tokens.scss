@@ -1,0 +1,281 @@
+// Design tokens. Unica fuente de verdad para color, espaciado, radios, tipografia y motion.
+// Toda superficie del producto consume estas variables: ningun componente define color literal.
+
+html {
+  // ---------------------------------------------------------------------------
+  // Escala de espaciado (base 4px). Expresada en rem para escalar con Dynamic Type.
+  // ---------------------------------------------------------------------------
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  // Ritmo del shell: un solo canal de gutter para toda la app.
+  --gutter: var(--space-5);
+  --gutter-tight: var(--space-4);
+
+  // ---------------------------------------------------------------------------
+  // Radios. Escala cerrada; los valores intermedios sueltos estan prohibidos.
+  // ---------------------------------------------------------------------------
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-pill: 999px;
+
+  // ---------------------------------------------------------------------------
+  // Tipografia. Cada paso lleva su propio tracking y leading: el tracking se
+  // cierra a medida que crece el tamano y se abre en los tamanos pequenos.
+  // ---------------------------------------------------------------------------
+  --font-sans: Manrope, Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+
+  --text-display-size: clamp(2.125rem, 3.2vw, 3rem);
+  --text-display-leading: 1.04;
+  --text-display-tracking: -0.032em;
+
+  --text-title1-size: 1.625rem;
+  --text-title1-leading: 1.16;
+  --text-title1-tracking: -0.024em;
+
+  --text-title2-size: 1.1875rem;
+  --text-title2-leading: 1.28;
+  --text-title2-tracking: -0.016em;
+
+  --text-title3-size: 1.0313rem;
+  --text-title3-leading: 1.38;
+  --text-title3-tracking: -0.01em;
+
+  --text-body-size: 0.9375rem;
+  --text-body-leading: 1.62;
+  --text-body-tracking: 0em;
+
+  --text-callout-size: 0.875rem;
+  --text-callout-leading: 1.55;
+  --text-callout-tracking: 0.002em;
+
+  --text-caption-size: 0.8125rem;
+  --text-caption-leading: 1.48;
+  --text-caption-tracking: 0.006em;
+
+  --text-micro-size: 0.6875rem;
+  --text-micro-leading: 1.2;
+  --text-micro-tracking: 0.13em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  // ---------------------------------------------------------------------------
+  // Motion. Todo el UI vive por debajo de 300ms.
+  // ---------------------------------------------------------------------------
+  --dur-instant: 90ms;
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+  --dur-slow: 260ms;
+
+  // Curvas propias: las integradas de CSS son demasiado debiles para UI deliberado.
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  // Sobreimpulso leve: reservado a movimiento con momento (arrastre, flick).
+  --ease-overshoot: cubic-bezier(0.34, 1.36, 0.64, 1);
+
+  // Multiplicador de desplazamiento. A 0 el movimiento desaparece pero las
+  // transiciones de opacidad y color sobreviven (ver bloque reduced-motion).
+  --motion-shift: 1;
+  --lift-sm: calc(var(--motion-shift) * -1px);
+  --lift-md: calc(var(--motion-shift) * -2px);
+  --enter-y: calc(var(--motion-shift) * 6px);
+  --enter-y-lg: calc(var(--motion-shift) * 10px);
+
+  // ---------------------------------------------------------------------------
+  // Materiales. Peso de blur creciente segun el tamano de la superficie.
+  // ---------------------------------------------------------------------------
+  --blur-chip: blur(12px) saturate(150%);
+  --blur-panel: blur(20px) saturate(160%);
+  --blur-chrome: blur(28px) saturate(170%);
+}
+
+// -----------------------------------------------------------------------------
+// Tema oscuro (por defecto)
+// -----------------------------------------------------------------------------
+html {
+  color-scheme: dark;
+
+  --bg-base: #05070c;
+  --bg-raised: #090d15;
+  --bg-grid: rgba(255, 255, 255, 0.025);
+
+  // Superficies translucidas apiladas de menor a mayor peso.
+  --surface-1: rgba(255, 255, 255, 0.032);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --surface-3: rgba(255, 255, 255, 0.082);
+  // Hundida: para campos e inserciones dentro de una tarjeta ya translucida.
+  --surface-sunken: rgba(0, 0, 0, 0.22);
+  // Chrome: barras y sidenav flotando sobre el contenido.
+  --surface-chrome: rgba(9, 12, 19, 0.72);
+  --surface-chrome-solid: #0b0f17;
+
+  --border-subtle: rgba(255, 255, 255, 0.055);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  // Filo superior claro: la luz golpeando el canto del material.
+  --border-highlight: rgba(255, 255, 255, 0.07);
+
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(226, 232, 240, 0.68);
+  --text-tertiary: rgba(226, 232, 240, 0.46);
+
+  --accent: #60a5fa;
+  --accent-contrast: #0b1220;
+  --accent-wash: rgba(96, 165, 250, 0.12);
+  --accent-wash-strong: rgba(96, 165, 250, 0.2);
+  --accent-border: rgba(96, 165, 250, 0.32);
+  --accent-text: #bfdbfe;
+
+  --ok: #4ade80;
+  --ok-wash: rgba(74, 222, 128, 0.12);
+  --ok-text: #bbf7d0;
+  --warn: #fbbf24;
+  --warn-wash: rgba(251, 191, 36, 0.12);
+  --warn-text: #fde68a;
+  --danger: #f87171;
+  --danger-wash: rgba(248, 113, 113, 0.12);
+  --danger-text: #fecaca;
+  // Relleno destructivo: un rojo mas profundo que --danger, porque este ultimo
+  // es demasiado claro para sostener texto blanco (2.5:1).
+  --danger-solid: #dc2626;
+  --danger-on-solid: #ffffff;
+  --danger-border: rgba(248, 113, 113, 0.32);
+  --neutral-wash: rgba(148, 163, 184, 0.12);
+  --neutral-text: #cbd5e1;
+
+  // Brillo decorativo secundario del fondo.
+  --glow-secondary: rgba(45, 212, 191, 0.08);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.4);
+  --shadow-chrome: 0 28px 90px rgba(0, 0, 0, 0.34);
+  // Filo de scroll: se difumina donde el chrome flotante cubre el contenido.
+  --shadow-edge: rgba(0, 0, 0, 0.35);
+}
+
+// -----------------------------------------------------------------------------
+// Tema claro. Paridad completa: ningun componente debe conocer el tema activo.
+// -----------------------------------------------------------------------------
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-base: #e8edf5;
+  --bg-raised: #f7f9fc;
+  --bg-grid: rgba(15, 23, 42, 0.035);
+
+  --surface-1: rgba(255, 255, 255, 0.7);
+  --surface-2: rgba(255, 255, 255, 0.9);
+  --surface-3: #ffffff;
+  --surface-sunken: rgba(15, 23, 42, 0.045);
+  --surface-chrome: rgba(255, 255, 255, 0.76);
+  --surface-chrome-solid: #ffffff;
+
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --border-highlight: rgba(255, 255, 255, 0.9);
+
+  --text-primary: #0f172a;
+  --text-secondary: rgba(51, 65, 85, 0.86);
+  --text-tertiary: rgba(71, 85, 105, 0.62);
+
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-wash: rgba(37, 99, 235, 0.08);
+  --accent-wash-strong: rgba(37, 99, 235, 0.14);
+  --accent-border: rgba(37, 99, 235, 0.28);
+  --accent-text: #1d4ed8;
+
+  --ok: #16a34a;
+  --ok-wash: rgba(22, 163, 74, 0.1);
+  --ok-text: #15803d;
+  --warn: #b45309;
+  --warn-wash: rgba(180, 83, 9, 0.1);
+  --warn-text: #92400e;
+  --danger: #dc2626;
+  --danger-wash: rgba(220, 38, 38, 0.09);
+  --danger-text: #b91c1c;
+  --danger-solid: #dc2626;
+  --danger-on-solid: #ffffff;
+  --danger-border: rgba(220, 38, 38, 0.28);
+  --neutral-wash: rgba(100, 116, 139, 0.1);
+  --neutral-text: #475569;
+
+  --glow-secondary: rgba(13, 148, 136, 0.07);
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.1);
+  --shadow-chrome: 0 20px 50px rgba(15, 23, 42, 0.08);
+  --shadow-edge: rgba(15, 23, 42, 0.12);
+}
+
+// -----------------------------------------------------------------------------
+// Preferencias de accesibilidad. Los tokens absorben el ajuste para que ningun
+// componente tenga que declarar su propia variante.
+// -----------------------------------------------------------------------------
+
+// Movimiento reducido: cae el desplazamiento, sobreviven opacidad y color.
+@media (prefers-reduced-motion: reduce) {
+  html {
+    --motion-shift: 0;
+    --ease-overshoot: var(--ease-out);
+  }
+}
+
+// Transparencia reducida: superficies mas solidas y sin blur.
+@media (prefers-reduced-transparency: reduce) {
+  html {
+    --surface-1: #0d121b;
+    --surface-2: #141a25;
+    --surface-3: #1a212e;
+    --surface-sunken: #070a10;
+    --surface-chrome: var(--surface-chrome-solid);
+    --blur-chip: none;
+    --blur-panel: none;
+    --blur-chrome: none;
+  }
+
+  html[data-theme='light'] {
+    --surface-1: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-3: #ffffff;
+    --surface-sunken: #eef2f7;
+    --surface-chrome: var(--surface-chrome-solid);
+  }
+}
+
+// Contraste alto: bordes definidos y texto secundario mas firme.
+@media (prefers-contrast: more) {
+  html {
+    --border-subtle: rgba(255, 255, 255, 0.22);
+    --border: rgba(255, 255, 255, 0.34);
+    --border-strong: rgba(255, 255, 255, 0.5);
+    --text-secondary: rgba(241, 245, 249, 0.92);
+    --text-tertiary: rgba(241, 245, 249, 0.74);
+  }
+
+  html[data-theme='light'] {
+    --border-subtle: rgba(15, 23, 42, 0.24);
+    --border: rgba(15, 23, 42, 0.38);
+    --border-strong: rgba(15, 23, 42, 0.56);
+    --text-secondary: #1e293b;
+    --text-tertiary: #334155;
+  }
+}

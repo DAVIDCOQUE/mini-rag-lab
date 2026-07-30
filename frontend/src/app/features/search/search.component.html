@@ -1,45 +1,97 @@
-<div class="search">
-  <header class="search__header">
-    <h1 class="search__title">Búsqueda semántica</h1>
-    <form class="search__box" (ngSubmit)="search()">
+<div class="page explore enter">
+  <section class="query surface surface--accent surface--panel">
+    <span class="eyebrow">{{ copy().eyebrow }}</span>
+    <h2 class="t-title-1 query__headline">{{ copy().headline }}</h2>
+
+    <form class="searchbar" (ngSubmit)="search()">
+      <mat-icon class="searchbar__icon">search</mat-icon>
+
       <input
-        class="search__input"
-        type="text"
+        class="searchbar__input"
+        type="search"
         name="query"
+        autocomplete="off"
         [(ngModel)]="query"
-        placeholder="Escribe una pregunta o tema para buscar en los documentos indexados…"
+        [placeholder]="copy().placeholder"
       />
-      <button mat-flat-button color="primary" type="submit" [disabled]="loading() || !query.trim()">
-        <mat-icon>search</mat-icon>
-        Buscar
+
+      @if (query) {
+        <button
+          mat-icon-button
+          type="button"
+          class="searchbar__clear"
+          (click)="clear()"
+          [attr.aria-label]="copy().clear"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+
+      <button mat-flat-button type="submit" [disabled]="loading() || !query.trim()">
+        {{ copy().submit }}
       </button>
     </form>
-  </header>
+
+    <div class="suggestions">
+      <span class="suggestions__label t-caption">{{ copy().suggestions }}</span>
+      @for (prompt of copy().quickQueries; track prompt) {
+        <button type="button" class="chip" (click)="runSuggestion(prompt)">
+          {{ prompt }}
+        </button>
+      }
+    </div>
+  </section>
 
   @if (loading()) {
     <mat-progress-bar mode="indeterminate" />
   }
 
-  <div class="search__results">
-    @if (searched() && results().length === 0 && !loading()) {
-      <div class="search__empty">
-        <mat-icon>search_off</mat-icon>
-        <p>Sin resultados. ¿Indexaste algún documento?</p>
+  @if (searched() && results().length > 0) {
+    <div class="results__head">
+      <span class="eyebrow">{{ copy().resultsLabel }}</span>
+      <span class="results__count t-caption">{{ results().length }} · “{{ lastQuery() }}”</span>
+    </div>
+  }
+
+  <section class="results scroll-region">
+    @if (!searched() && !loading()) {
+      <div class="empty-state results__empty surface">
+        <mat-icon>travel_explore</mat-icon>
+        <p>{{ copy().idle }}</p>
       </div>
     }
 
-    @for (item of results(); track item.chunk_index + '-' + item.document_id) {
-      <div class="result">
-        <div class="result__header">
-          <span class="result__meta">
-            <mat-icon class="result__icon">description</mat-icon>
-            Página {{ item.page }} · chunk #{{ item.chunk_index }}
-          </span>
-          <span class="result__score">{{ scorePercent(item.score) }}% similitud</span>
-        </div>
-        <p class="result__content">{{ item.content }}</p>
-        <span class="result__doc">Documento: {{ item.document_id }}</span>
+    @if (searched() && results().length === 0 && !loading()) {
+      <div class="empty-state results__empty surface">
+        <mat-icon>search_off</mat-icon>
+        <p>{{ copy().noResults }}</p>
       </div>
     }
-  </div>
+
+    @for (item of results(); track item.document_id + '-' + item.chunk_index; let i = $index) {
+      <article class="result surface">
+        <header class="result__head">
+          <span class="result__rank">{{ i + 1 }}</span>
+
+          <span class="result__source">
+            <mat-icon>description</mat-icon>
+            {{ copy().page }} {{ item.page }} · {{ copy().chunk }} #{{ item.chunk_index }}
+          </span>
+
+          <span class="result__score">
+            <span class="result__score-value">{{ scorePercent(item.score) }}%</span>
+            <span class="result__bar" [attr.aria-label]="copy().relevance">
+              <i [style.transform]="'scaleX(' + item.score + ')'"></i>
+            </span>
+          </span>
+        </header>
+
+        <p class="result__content">{{ item.content }}</p>
+
+        <footer class="result__foot">
+          <span class="t-mono result__doc">{{ copy().document }}: {{ item.document_id }}</span>
+        </footer>
+      </article>
+    }
+  </section>
 </div>

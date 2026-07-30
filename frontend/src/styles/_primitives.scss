@@ -1,0 +1,291 @@
+@use 'motion' as motion;
+
+// Primitivas globales del design system. Viven en el ambito global a proposito:
+// las cuatro superficies del workspace comparten estas recetas en lugar de
+// redefinir tarjeta, eyebrow y panel en cada componente.
+
+// -----------------------------------------------------------------------------
+// Tipografia
+// -----------------------------------------------------------------------------
+.t-display,
+.t-title-1,
+.t-title-2,
+.t-title-3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+  text-wrap: balance;
+}
+
+.t-display {
+  font-size: var(--text-display-size);
+  line-height: var(--text-display-leading);
+  letter-spacing: var(--text-display-tracking);
+  font-weight: var(--weight-bold);
+}
+
+.t-title-1 {
+  font-size: var(--text-title1-size);
+  line-height: var(--text-title1-leading);
+  letter-spacing: var(--text-title1-tracking);
+}
+
+.t-title-2 {
+  font-size: var(--text-title2-size);
+  line-height: var(--text-title2-leading);
+  letter-spacing: var(--text-title2-tracking);
+}
+
+.t-title-3 {
+  font-size: var(--text-title3-size);
+  line-height: var(--text-title3-leading);
+  letter-spacing: var(--text-title3-tracking);
+}
+
+.t-body {
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  letter-spacing: var(--text-body-tracking);
+  color: var(--text-secondary);
+  // Medida de lectura: por encima de ~70ch el ojo pierde el salto de linea.
+  max-width: 66ch;
+  text-wrap: pretty;
+}
+
+.t-caption {
+  margin: 0;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-leading);
+  letter-spacing: var(--text-caption-tracking);
+  color: var(--text-tertiary);
+}
+
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption-size);
+  letter-spacing: 0;
+}
+
+// Etiqueta de seccion. Un unico lugar en toda la app.
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-micro-size);
+  line-height: var(--text-micro-leading);
+  letter-spacing: var(--text-micro-tracking);
+  text-transform: uppercase;
+  font-weight: var(--weight-semibold);
+  // Sobre material translucido el gris plano pierde legibilidad: peso extra
+  // y tracking abierto en lugar de bajar el contraste.
+  color: var(--text-tertiary);
+}
+
+// -----------------------------------------------------------------------------
+// Superficies
+// -----------------------------------------------------------------------------
+.surface {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface-1);
+  box-shadow: inset 0 1px 0 var(--border-highlight);
+}
+
+// Realce por gradiente anclado a la esquina de entrada de luz.
+.surface--accent {
+  background:
+    radial-gradient(circle at top right, var(--accent-wash), transparent 42%),
+    var(--surface-1);
+}
+
+// Insercion dentro de una superficie ya translucida. Nunca apilar surface-1
+// sobre surface-1: la legibilidad se cae.
+.surface--sunken {
+  border-color: var(--border-subtle);
+  background: var(--surface-sunken);
+  box-shadow: none;
+}
+
+// Superficie grande: mas blur y sombra mas profunda que un chip.
+.surface--panel {
+  backdrop-filter: var(--blur-panel);
+  box-shadow:
+    inset 0 1px 0 var(--border-highlight),
+    var(--shadow-md);
+}
+
+// -----------------------------------------------------------------------------
+// Raiz de una superficie enrutada.
+// -----------------------------------------------------------------------------
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gutter-tight);
+  min-height: 100%;
+}
+
+// -----------------------------------------------------------------------------
+// Controles
+// -----------------------------------------------------------------------------
+
+// Campo de texto propio (los que no pasan por mat-form-field).
+.field {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  outline: none;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  &:focus-visible {
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-wash);
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-caption-size);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+
+  @include motion.hover-only {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  @include motion.press(0.97);
+}
+
+// Indicador de estado. Los cuatro tonos del sistema en un solo sitio.
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+
+  &--neutral {
+    background: var(--neutral-wash);
+    color: var(--neutral-text);
+  }
+  &--info {
+    background: var(--accent-wash-strong);
+    color: var(--accent-text);
+  }
+  &--ok {
+    background: var(--ok-wash);
+    color: var(--ok-text);
+  }
+  &--warn {
+    background: var(--warn-wash);
+    color: var(--warn-text);
+  }
+  &--danger {
+    background: var(--danger-wash);
+    color: var(--danger-text);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Estado vacio. Misma forma en las cuatro superficies.
+// -----------------------------------------------------------------------------
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+  color: var(--text-tertiary);
+
+  mat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+    color: var(--text-tertiary);
+    opacity: 0.7;
+  }
+
+  p {
+    margin: 0;
+    max-width: 42ch;
+    font-size: var(--text-callout-size);
+    line-height: var(--text-callout-leading);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Region con scroll. Difumina el filo en lugar de cortarlo con un borde.
+// -----------------------------------------------------------------------------
+.scroll-region {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: var(--radius-pill);
+    background-clip: content-box;
+    background-color: var(--border-strong);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Entrada de vista. Se aplica a la raiz de cada superficie enrutada.
+// -----------------------------------------------------------------------------
+.enter {
+  animation: surface-enter var(--dur-slow) var(--ease-out) both;
+
+  @include motion.reduced-motion {
+    animation-name: surface-fade;
+  }
+}
+
+// Grupo escalonado: cada hijo entra 40ms despues del anterior.
+.enter-group > * {
+  animation: surface-enter var(--dur-slow) var(--ease-out) both;
+
+  @include motion.reduced-motion {
+    animation-name: surface-fade;
+  }
+}
+
+@include motion.stagger('.enter-group > *', 8, 40ms);

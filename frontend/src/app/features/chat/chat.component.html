@@ -1,62 +1,160 @@
-<div class="chat">
-  <header class="chat__header">
-    <h1 class="chat__title">Chat</h1>
-    <button
-      mat-stroked-button
-      type="button"
-      (click)="clear()"
-      [disabled]="loading() || !hasMessages()"
+<div class="studio enter">
+  <section class="thread surface surface--panel">
+    <header class="thread__head">
+      <div class="thread__title">
+        <span class="eyebrow">{{ copy().conversation }}</span>
+        <span class="thread__hint t-caption">{{ copy().hint }}</span>
+      </div>
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="clear()"
+        [disabled]="loading() || !hasMessages()"
+      >
+        <mat-icon>delete_sweep</mat-icon>
+        {{ copy().clear }}
+      </button>
+    </header>
+
+    <div
+      class="thread__messages scroll-region"
+      #scrollContainer
+      (scroll)="onMessagesScroll($event)"
     >
-      <mat-icon>delete_sweep</mat-icon>
-      Limpiar chat
-    </button>
-  </header>
-
-  <div class="chat__messages" #scrollContainer>
-    @if (!hasMessages() && !loading()) {
-      <div class="chat__empty">
-        <mat-icon>forum</mat-icon>
-        <p>Escribe un mensaje para comenzar a conversar con el modelo.</p>
-      </div>
-    }
-
-    @for (msg of messages(); track msg.id) {
-      <div class="bubble" [class.bubble--user]="msg.role === 'user'">
-        <div class="bubble__content">{{ msg.content }}</div>
-      </div>
-    }
-
-    @if (loading()) {
-      <div class="bubble">
-        <div class="bubble__content bubble__content--typing">
-          <span class="typing">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          </span>
-          Escribiendo…
+      @if (!hasMessages() && !loading()) {
+        <div class="empty-state thread__empty">
+          <mat-icon>forum</mat-icon>
+          <p>{{ copy().empty }}</p>
+          <p class="t-caption">{{ copy().emptyHint }}</p>
         </div>
-      </div>
-    }
-  </div>
+      }
 
-  <form class="chat__composer" (ngSubmit)="send()">
-    <textarea
-      class="chat__input"
-      cdkTextareaAutosize
-      cdkAutosizeMinRows="2"
-      cdkAutosizeMaxRows="8"
-      name="draft"
-      [(ngModel)]="draft"
-      (keydown)="onKeydown($event)"
-      placeholder="Escribe tu mensaje…  (Enter para enviar · Shift+Enter para nueva línea)"
-    ></textarea>
-    <button
-      mat-fab
-      color="primary"
-      type="submit"
-      aria-label="Enviar mensaje"
-      [disabled]="loading() || !draft.trim()"
-    >
-      <mat-icon>send</mat-icon>
-    </button>
-  </form>
+      @for (msg of messages(); track msg.id) {
+        <article class="msg" [class.msg--user]="msg.role === 'user'">
+          <span class="msg__avatar">
+            {{ msg.role === 'user' ? copy().you : copy().model }}
+          </span>
+
+          <div class="msg__stack">
+            <div class="msg__body">{{ msg.content }}</div>
+
+            <button
+              type="button"
+              class="msg__copy"
+              [class.msg__copy--done]="copiedId() === msg.id"
+              (click)="copyMessage(msg)"
+              [attr.aria-label]="copy().copy"
+              [title]="copy().copy"
+            >
+              <mat-icon>{{ copiedId() === msg.id ? 'check' : 'content_copy' }}</mat-icon>
+              <span>{{ copiedId() === msg.id ? copy().copied : copy().copy }}</span>
+            </button>
+          </div>
+        </article>
+      }
+
+      @if (loading()) {
+        <article class="msg">
+          <span class="msg__avatar">{{ copy().model }}</span>
+          <div class="msg__body msg__body--pending">
+            <span class="typing" aria-hidden="true">
+              <i></i><i></i><i></i>
+            </span>
+            {{ copy().thinking }}
+          </div>
+        </article>
+      }
+
+      <!-- Un fallo se muestra como estado del sistema, con salida clara. -->
+      @if (errorMessage(); as message) {
+        <div
+          class="notice"
+          [class.notice--error]="errorIsFailure()"
+          role="status"
+          aria-live="polite"
+        >
+          <mat-icon>{{ errorIsFailure() ? 'error' : 'stop_circle' }}</mat-icon>
+          <span class="notice__text">{{ message }}</span>
+
+          @if (canRetry()) {
+            <button mat-stroked-button type="button" class="notice__action" (click)="retry()">
+              <mat-icon>refresh</mat-icon>
+              {{ copy().retry }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <form class="composer" (ngSubmit)="send()">
+      <textarea
+        class="field composer__input"
+        #composer
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="1"
+        cdkAutosizeMaxRows="8"
+        name="draft"
+        [(ngModel)]="draft"
+        (keydown)="onKeydown($event)"
+        [placeholder]="copy().placeholder"
+      ></textarea>
+
+      <!-- Enviar y detener comparten sitio: el control no se mueve cuando cambia
+           lo que hace, solo cambia su afordancia. -->
+      @if (loading()) {
+        <button
+          mat-flat-button
+          class="composer__send composer__send--stop"
+          type="button"
+          (click)="stop()"
+          [attr.aria-label]="copy().stop"
+          [title]="copy().stop"
+        >
+          <mat-icon>stop</mat-icon>
+        </button>
+      } @else {
+        <button
+          mat-flat-button
+          class="composer__send"
+          type="submit"
+          [attr.aria-label]="copy().send"
+          [title]="copy().send"
+          [disabled]="!draft.trim()"
+        >
+          <mat-icon>arrow_upward</mat-icon>
+        </button>
+      }
+    </form>
+  </section>
+
+  <aside class="inspector">
+    <article class="panel surface surface--accent">
+      <span class="eyebrow">{{ copy().mode }}</span>
+      <h3 class="t-title-3">{{ copy().modeTitle }}</h3>
+      <p class="t-caption">{{ copy().modeBody }}</p>
+    </article>
+
+    <article class="panel surface">
+      <span class="eyebrow">{{ copy().prompts }}</span>
+      <div class="prompts">
+        @for (item of copy().promptItems; track item) {
+          <button type="button" class="prompt" (click)="usePrompt(item)">
+            <span>{{ item }}</span>
+            <mat-icon>north_east</mat-icon>
+          </button>
+        }
+      </div>
+    </article>
+
+    <article class="panel surface">
+      <span class="eyebrow">{{ copy().workflow }}</span>
+      @for (step of copy().workflowSteps; track step.text) {
+        <div class="flow-step">
+          <mat-icon>{{ step.icon }}</mat-icon>
+          <span class="t-caption">{{ step.text }}</span>
+        </div>
+      }
+    </article>
+  </aside>
 </div>

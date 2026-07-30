@@ -1,29 +1,122 @@
-<mat-toolbar color="primary" class="toolbar">
-  <button mat-icon-button (click)="toggle()" aria-label="Alternar menú">
-    <mat-icon>menu</mat-icon>
-  </button>
-  <span>Mini RAG Lab</span>
-</mat-toolbar>
+<mat-sidenav-container class="layout">
+  <mat-sidenav
+    class="rail"
+    [mode]="sidenavMode()"
+    [opened]="sidenavOpened()"
+    (closedStart)="mobileNavOpen.set(false)"
+  >
+    <!-- Material proyecta el contenido dentro de .mat-drawer-inner-container, asi
+         que la columna flexible vive aqui y no en el propio mat-sidenav. -->
+    <div class="rail__inner">
+      <div class="rail__brand">
+        <span class="rail__mark">
+          <mat-icon>stack_star</mat-icon>
+        </span>
+        <span class="rail__brand-copy">
+          <strong class="rail__brand-name">Mini RAG Lab</strong>
+          <span class="rail__brand-tagline">{{ chrome().tagline }}</span>
+        </span>
+      </div>
 
-<mat-sidenav-container class="layout-container">
-  <mat-sidenav mode="side" [opened]="opened()" class="sidenav">
-    <mat-nav-list>
-      @for (item of navItems; track item.path) {
-        <a
-          mat-list-item
-          [routerLink]="item.path"
-          routerLinkActive
-          #rla="routerLinkActive"
-          [activated]="rla.isActive"
-        >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
-      }
-    </mat-nav-list>
+      <nav class="rail__nav" [attr.aria-label]="chrome().navLabel">
+        <span class="eyebrow rail__group-label">{{ chrome().navLabel }}</span>
+
+        @for (item of navItems(); track item.path) {
+          <a
+            class="nav-item"
+            [routerLink]="item.path"
+            routerLinkActive="nav-item--active"
+            #rla="routerLinkActive"
+            [attr.aria-current]="rla.isActive ? 'page' : null"
+            (click)="closeNavOnMobile()"
+          >
+            <span class="nav-item__icon">
+              <mat-icon>{{ item.icon }}</mat-icon>
+            </span>
+            <span class="nav-item__copy">
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.description }}</span>
+            </span>
+          </a>
+        }
+      </nav>
+
+      <!-- Estado ambiental: el unico contenido que gana un sitio permanente aqui. -->
+      <div class="rail__system">
+        <span class="eyebrow rail__group-label">{{ chrome().systemLabel }}</span>
+
+        <div class="system">
+          @for (service of services(); track service.label) {
+            <div class="system__row">
+              <span class="system__dot" [class]="'system__dot--' + service.state"></span>
+              <span class="system__name">{{ service.label }}</span>
+            </div>
+          }
+          <p class="system__summary t-caption">{{ systemSummary() }}</p>
+        </div>
+      </div>
+    </div>
   </mat-sidenav>
 
   <mat-sidenav-content class="content">
-    <router-outlet />
+    <header class="topbar" [class.topbar--floating]="scrolled()">
+      <div class="topbar__identity">
+        <button
+          mat-icon-button
+          type="button"
+          (click)="toggleNav()"
+          [attr.aria-label]="chrome().navToggle"
+          [title]="chrome().navToggle"
+        >
+          <mat-icon>{{ compact() ? 'menu' : 'panel_left' }}</mat-icon>
+        </button>
+
+        <div class="topbar__copy">
+          <h1 class="topbar__title">{{ activeItem().label }}</h1>
+          <p class="topbar__subtitle">{{ activeItem().description }}</p>
+        </div>
+      </div>
+
+      <div class="topbar__actions">
+        <button
+          mat-icon-button
+          type="button"
+          (click)="toggleLocale()"
+          [attr.aria-label]="chrome().languageHint"
+          [title]="chrome().languageHint"
+        >
+          <span class="topbar__locale">{{ chrome().language }}</span>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="toggleTheme()"
+          [attr.aria-label]="chrome().themeHint"
+          [title]="chrome().themeHint"
+        >
+          <mat-icon>{{ ui.theme() === 'dark' ? 'dark_mode' : 'light_mode' }}</mat-icon>
+        </button>
+      </div>
+    </header>
+
+    <main class="shell scroll-region" (scroll)="onContentScroll($event)">
+      <router-outlet />
+    </main>
+
+    <nav class="dock" [attr.aria-label]="chrome().navLabel">
+      @for (item of navItems(); track item.path) {
+        <a
+          class="dock__item"
+          [routerLink]="item.path"
+          routerLinkActive="dock__item--active"
+          #dockActive="routerLinkActive"
+          [attr.aria-current]="dockActive.isActive ? 'page' : null"
+          (click)="closeNavOnMobile()"
+        >
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
   </mat-sidenav-content>
 </mat-sidenav-container>

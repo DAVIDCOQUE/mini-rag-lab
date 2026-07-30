@@ -1,28 +1,429 @@
+@use '../../styles/motion' as motion;
+
 :host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  // El shell flota sobre la rejilla de fondo del body.
+  position: relative;
+  z-index: 1;
+}
+
+.layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: transparent;
+}
+
+// -----------------------------------------------------------------------------
+// Rail de navegacion. Material estructural: mas pesado que los paneles de
+// contenido, para que separe regiones sin competir por la atencion.
+// -----------------------------------------------------------------------------
+.rail {
+  --mat-sidenav-container-background-color: transparent;
+  --mat-sidenav-container-text-color: var(--text-primary);
+  --mat-sidenav-container-shape: 0;
+
+  width: 288px;
+  border-right: 1px solid var(--border);
+  background: var(--surface-chrome);
+  backdrop-filter: var(--blur-chrome);
+  box-shadow: var(--shadow-chrome);
+
+  @media (max-width: 959px) {
+    width: min(86vw, 300px);
+  }
+}
+
+// Material ya da height: 100% al contenedor interno, asi que la columna resuelve
+// su altura sin necesidad de perforar la encapsulacion con ::ng-deep.
+.rail__inner {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  flex: 0 0 auto;
+.rail__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+}
 
-  span {
-    margin-left: 0.5rem;
-    font-weight: 500;
+.rail__mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(140deg, var(--accent-wash-strong), var(--accent-wash));
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
   }
 }
 
-.layout-container {
-  flex: 1 1 auto;
-  // min-height 0 permite que el contenedor ocupe el alto restante y el contenido haga scroll.
-  min-height: 0;
+.rail__brand-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.sidenav {
-  width: 240px;
-  border-right: 1px solid var(--mat-sys-outline-variant);
+.rail__brand-name {
+  font-size: var(--text-title3-size);
+  line-height: var(--text-title3-leading);
+  letter-spacing: var(--text-title3-tracking);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.rail__brand-tagline {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-leading);
+  color: var(--text-tertiary);
+}
+
+.rail__group-label {
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.rail__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-4);
+}
+
+// -----------------------------------------------------------------------------
+// Fila de navegacion
+// -----------------------------------------------------------------------------
+.nav-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--text-secondary);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+
+  @include motion.hover-only {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+
+  @include motion.press;
+}
+
+// Indicador de posicion anclado al canto del rail.
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-3) * -1);
+  top: 50%;
+  width: 3px;
+  height: 1.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transform: translate(0, -50%) scaleY(0);
+  transform-origin: center;
+  opacity: 0;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.nav-item--active {
+  background: var(--accent-wash);
+  color: var(--text-primary);
+
+  &::before {
+    transform: translate(0, -50%) scaleY(1);
+    opacity: 1;
+  }
+
+  .nav-item__icon {
+    background: var(--accent-wash-strong);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+
+  .nav-item__copy strong {
+    color: var(--text-primary);
+  }
+}
+
+.nav-item__icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.nav-item__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: var(--text-callout-size);
+    line-height: 1.35;
+    letter-spacing: -0.008em;
+    font-weight: var(--weight-semibold);
+    color: inherit;
+  }
+
+  span {
+    font-size: var(--text-caption-size);
+    line-height: 1.35;
+    color: var(--text-tertiary);
+    // Una sola linea: la descripcion orienta, no explica.
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Estado del sistema, anclado al pie del rail.
+// -----------------------------------------------------------------------------
+.rail__system {
+  margin-top: auto;
+  padding: var(--space-4) var(--space-3) var(--space-5);
+}
+
+.system {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.system__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.system__dot {
+  flex: 0 0 auto;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: background-color var(--dur-base) var(--ease-out);
+
+  &--up {
+    background: var(--ok);
+    // Halo en lugar de sombra: sobrevive al cambio de tema.
+    box-shadow: 0 0 0 3px var(--ok-wash);
+  }
+
+  &--down {
+    background: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-wash);
+  }
+
+  // Sin respuesta todavia: latido lento en lugar de un color que afirme algo.
+  &--unknown {
+    animation: pulse-soft 1.8s var(--ease-in-out) infinite;
+  }
+}
+
+@include motion.reduced-motion {
+  .system__dot--unknown {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+.system__name {
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+}
+
+.system__summary {
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+// -----------------------------------------------------------------------------
+// Contenido
+// -----------------------------------------------------------------------------
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: transparent;
+  // Solo .shell hace scroll; evita la segunda barra de mat-drawer-content.
+  overflow: hidden;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--gutter);
+  background: var(--surface-chrome);
+  backdrop-filter: var(--blur-chrome);
+}
+
+// Filo de scroll en lugar de un divisor de 1px: un degradado suave que solo
+// aparece cuando el contenido pasa de verdad por debajo del chrome. Se anima
+// la opacidad de un pseudo-elemento, no la sombra de la barra.
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 1.25rem;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--shadow-edge), transparent);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.topbar--floating::after {
+  opacity: 1;
+}
+
+.topbar__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.topbar__copy {
+  min-width: 0;
+}
+
+// El titulo nombra el destino; la descripcion queda como apoyo.
+.topbar__title {
+  margin: 0;
+  font-size: var(--text-title2-size);
+  line-height: 1.2;
+  letter-spacing: var(--text-title2-tracking);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.topbar__subtitle {
+  margin: 0;
+  font-size: var(--text-caption-size);
+  line-height: 1.35;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.topbar__locale {
+  font-size: var(--text-caption-size);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+}
+
+.shell {
+  padding: var(--gutter);
+}
+
+.dock {
+  display: none;
+}
+
+// -----------------------------------------------------------------------------
+// Compacto
+// -----------------------------------------------------------------------------
+@media (max-width: 959px) {
+  .topbar {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .shell {
+    padding: var(--space-4);
+  }
+
+  .dock {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--surface-chrome);
+    backdrop-filter: var(--blur-chrome);
+  }
+
+  .dock__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-1);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--text-tertiary);
+    font-size: var(--text-micro-size);
+    letter-spacing: 0.02em;
+    font-weight: var(--weight-semibold);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-out);
+
+    @include motion.press(0.96);
+
+    mat-icon {
+      font-size: 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+  }
+
+  .dock__item--active {
+    color: var(--accent);
+    background: var(--accent-wash);
+  }
 }

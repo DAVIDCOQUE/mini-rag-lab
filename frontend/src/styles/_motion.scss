@@ -1,0 +1,103 @@
+// Capa de motion: mixins y keyframes compartidos.
+// Regla base: solo se animan transform y opacity, siempre por debajo de 300ms,
+// siempre con curva de salida (ease-out) en entradas.
+
+// Movimiento gated a punteros finos: en tactil el hover se dispara con el tap.
+@mixin hover-only {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @content;
+    }
+  }
+}
+
+// Para keyframes infinitos o motion que debe desaparecer del todo.
+// El desplazamiento ya cae solo via --motion-shift; esto es para lo que no.
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+// Feedback de presion: ocurre en pointer-down, no al soltar.
+// No declara la transicion; el componente ya incluye transform en la suya.
+@mixin press($scale: 0.985) {
+  &:active {
+    transform: scale($scale);
+  }
+
+  @include reduced-motion {
+    &:active {
+      transform: none;
+    }
+  }
+}
+
+// Escalonado de un grupo. 40ms mantiene la lectura de conjunto sin arrastrar.
+@mixin stagger($selector, $count: 6, $step: 40ms, $base: 0ms) {
+  @for $i from 1 through $count {
+    #{$selector}:nth-child(#{$i}) {
+      animation-delay: $base + $step * ($i - 1);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Keyframes compartidos
+// -----------------------------------------------------------------------------
+
+@keyframes surface-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--enter-y), 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+// Equivalente sin desplazamiento para movimiento reducido.
+@keyframes surface-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// Entrada de mensaje: nace desde su lado, nunca desde scale(0).
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--enter-y), 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+// Materializacion de un panel: el blur y la escala llegan juntos, para que la
+// superficie lea como material que aparece y no como un fade plano.
+@keyframes material-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translate3d(0, var(--enter-y), 0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
