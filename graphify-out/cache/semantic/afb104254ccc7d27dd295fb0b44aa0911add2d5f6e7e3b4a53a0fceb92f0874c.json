@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "id": "frontend_src_app_features_search_search_component_search_template",
+      "label": "Search explore template (searchbar + ranked results)",
+      "file_type": "code",
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L1-97",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_search_search_component_score_bar_scalex",
+      "label": "Relevance bar driven by inline scaleX(score)",
+      "file_type": "concept",
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L81-87",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_search_search_component_search_result_chunk_shape",
+      "label": "Search result chunk shape (document_id, page, chunk_index, score, content)",
+      "file_type": "concept",
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L71-94",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "frontend_src_app_features_search_search_component_search_template",
+      "target": "frontend_src_app_features_home_home_component_enter_animation_classes",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_search_search_component_search_template",
+      "target": "frontend_src_app_features_chat_chat_component_copy_signal_i18n",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_documents_documents_component_chunk_inspector",
+      "target": "frontend_src_app_features_search_search_component_search_result_chunk_shape",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L71-94",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_search_search_component_search_template",
+      "target": "frontend_src_app_features_search_search_component_score_bar_scalex",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L81-87",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_search_search_component_search_template",
+      "target": "frontend_src_app_features_search_search_component_search_result_chunk_shape",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L71-94",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_search_search_component_search_result_chunk_shape",
+      "target": "readme_rag_pipeline_modules",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "frontend/src/app/features/search/search.component.html",
+      "source_location": "L71-94",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

@@ -1,0 +1,9 @@
+# Tooling del agente, no forma parte del proyecto: su prosa cuesta tokens de
+# extraccion semantica y ensucia el grafo con comunidades ajenas al codigo.
+# .agents/ guarda los SKILL.md reales; .claude/skills/ son junctions hacia ella.
+.agents/
+.claude/
+
+# Instrucciones para el agente, no documentacion del proyecto: cada edicion
+# invalidaria su cache y obligaria a re-extraer prosa con coste de tokens.
+/CLAUDE.md

@@ -1,8 +1,13 @@
 # Mini RAG Lab
 
 Laboratorio de aprendizaje para construir un sistema RAG paso a paso.
-En esta etapa solo está preparada la **infraestructura**: backend FastAPI, frontend Angular,
-y la estructura vacía para RAG/documentos. Todavía **no** hay IA, embeddings, Qdrant ni PDFs implementados.
+
+El circuito completo **ya funciona**: subir un PDF, extraer su texto con PyMuPDF, trocearlo
+respetando frases, embeberlo con Ollama (`bge-m3`), guardarlo en Qdrant y recuperarlo con
+búsqueda semántica reordenada por un cross-encoder.
+
+Quedan cuatro piezas como esqueleto para clases futuras: `rag/llm_service.py`,
+`rag/prompt_builder.py`, `documents/pdf_loader.py` y `documents/ocr.py`.
 
 ---
 
@@ -13,9 +18,9 @@ y la estructura vacía para RAG/documentos. Todavía **no** hay IA, embeddings, 
 | Python | 3.12 |
 | Node.js | 20+ |
 | Angular CLI | 20 |
-| PostgreSQL | 16 (opcional en esta etapa) |
+| PostgreSQL | 16 — necesario, guarda los documentos |
 | Qdrant | se descarga con `scripts\setup-qdrant.ps1` |
-| Ollama | (para clases futuras) |
+| Ollama | necesario, sirve los embeddings y el chat |
 
 ---
 
@@ -44,18 +49,42 @@ uvicorn app.main:app --reload --no-access-log
 - Docs: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
-El health check responde:
+El health check **comprueba de verdad** cada servicio, no devuelve un valor fijo:
+`SELECT 1` contra PostgreSQL, la lista de colecciones en Qdrant y un `GET /api/tags` en
+Ollama. Cada comprobación tiene 2 s de timeout para que `/health` no se bloquee si un
+servicio está caído, así que cada campo es `connected` o `disconnected`:
 
 ```json
 {
   "status": "ok",
   "service": "Mini RAG Lab",
   "version": "1.0.0",
-  "database": "pending",
-  "qdrant": "pending",
-  "ollama": "pending"
+  "database": "connected",
+  "qdrant": "connected",
+  "ollama": "connected"
 }
 ```
+
+> `status` es siempre `"ok"`: solo dice que la API responde. Para saber si todo está arriba
+> hay que mirar los tres campos de servicio, no `status`.
+
+### Endpoints
+
+`/health` se sirve en la raíz; el resto va bajo el prefijo `/api`.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/health` | Estado de PostgreSQL, Qdrant y Ollama |
+| `POST` | `/api/documents` | Sube un documento |
+| `GET` | `/api/documents` | Lista los documentos |
+| `GET` | `/api/documents/{id}` | Detalle de un documento |
+| `PUT` | `/api/documents/{id}` | Actualiza sus datos administrativos |
+| `DELETE` | `/api/documents/{id}` | Borra el archivo, sus vectores y el registro |
+| `POST` | `/api/documents/{id}/process` | Extrae el texto del PDF y lo trocea |
+| `POST` | `/api/documents/{id}/index` | Embebe los chunks y los guarda en Qdrant |
+| `GET` | `/api/documents/{id}/chunks` | Devuelve los chunks ya indexados |
+| `POST` | `/api/search` | Búsqueda semántica con reranking |
+| `POST` | `/api/chat` | Reenvía el mensaje a Ollama |
 
 ---
 
@@ -75,7 +104,8 @@ npm start
 
 En desarrollo, Angular usa `proxy.conf.json` para reenviar `/health` y `/api` hacia
 `http://localhost:8000`. Así el navegador trabaja en el mismo origen y **no hay problemas de CORS**.
-Al abrir la app debe aparecer: **✅ Backend conectado correctamente** (consumiendo `/health` real).
+Al abrir la app, el home muestra **Backend conectado** y el rail lateral refleja el estado de
+PostgreSQL, Qdrant y Ollama, todo consumiendo `/health` real.
 
 ---
 
@@ -128,13 +158,20 @@ alembic upgrade head
 # 2. Iniciar el servicio
 ollama serve
 
-# 3. (Futuro) descargar un modelo
-ollama pull llama3
+# 3. Descargar los dos modelos que usa el backend
+ollama pull bge-m3        # embeddings (1024 dimensiones)
+ollama pull qwen2.5:7b    # chat
 ```
 
 - API: http://localhost:11434
 
-> Aún no se usa desde el backend; se integrará en clases futuras.
+Los nombres salen de `EMBEDDING_MODEL` y `LLM_MODEL` en `backend/.env`. Si cambias el modelo
+de embeddings, ajusta también `EMBEDDING_DIM` y vuelve a indexar: la colección de Qdrant se
+crea con esa dimensión y no acepta vectores de otro tamaño.
+
+El reranking va aparte: usa un cross-encoder vía FastEmbed
+(`jinaai/jina-reranker-v2-base-multilingual`), que se descarga solo la primera vez y **no**
+pasa por Ollama. Se apaga con `RERANK_ENABLED=false`.
 
 ---
 
@@ -144,25 +181,26 @@ ollama pull llama3
 mini-rag-lab/
 ├── backend/                     FastAPI
 │   ├── app/
-│   │   ├── api/routes/          Endpoints HTTP (health)
+│   │   ├── api/routes/          Endpoints HTTP (health, chat, search, documents)
 │   │   ├── core/                Configuración (Pydantic Settings) y logging
 │   │   ├── database/            Engine, sesión y Base declarativa
 │   │   ├── models/              Modelos ORM (SQLAlchemy)
 │   │   ├── schemas/             DTOs (Pydantic)
 │   │   ├── repositories/        Acceso a datos
 │   │   ├── services/            Lógica de negocio
-│   │   ├── rag/                 Módulo RAG — clases base (pendiente)
-│   │   │   ├── chunker.py
-│   │   │   ├── embedding_service.py
-│   │   │   ├── qdrant_service.py
-│   │   │   ├── indexer.py
-│   │   │   ├── retriever.py
-│   │   │   ├── llm_service.py
-│   │   │   └── prompt_builder.py
-│   │   ├── documents/           Carga/parseo de documentos — clases base (pendiente)
-│   │   │   ├── pdf_loader.py
-│   │   │   ├── pdf_parser.py
-│   │   │   └── ocr.py
+│   │   ├── rag/                 Módulo RAG
+│   │   │   ├── chunker.py            trocea por página respetando frases
+│   │   │   ├── embedding_service.py  embeddings vía Ollama /api/embed
+│   │   │   ├── qdrant_service.py     colección, upsert y borrado de vectores
+│   │   │   ├── indexer.py            chunks → embeddings → Qdrant
+│   │   │   ├── retriever.py          recupera candidatos y reordena
+│   │   │   ├── reranker.py           cross-encoder vía FastEmbed
+│   │   │   ├── llm_service.py        (esqueleto)
+│   │   │   └── prompt_builder.py     (esqueleto)
+│   │   ├── documents/           Carga/parseo de documentos
+│   │   │   ├── pdf_parser.py         extrae texto con PyMuPDF, por página
+│   │   │   ├── pdf_loader.py         (esqueleto)
+│   │   │   └── ocr.py                (esqueleto)
 │   │   ├── utils/               Utilidades
 │   │   └── main.py              Punto de entrada FastAPI + logging middleware
 │   ├── alembic/                 Migraciones
@@ -171,8 +209,9 @@ mini-rag-lab/
 │
 ├── frontend/                    Angular 20
 │   ├── src/app/
-│   │   ├── core/                Servicios y modelos (HealthService)
-│   │   ├── features/            Vistas (home, chat, documents, catalog)
+│   │   ├── core/                Modelos y servicios HTTP (health, chat, search,
+│   │   │                        documents, preferencias de UI)
+│   │   ├── features/            Vistas (home, chat, documents, search)
 │   │   ├── layout/              Layout principal
 │   │   └── shared/              Componentes/pipes/directivas compartidos
 │   ├── src/environments/        apiUrl por entorno
@@ -181,5 +220,91 @@ mini-rag-lab/
 ├── scripts/
 │   └── setup-qdrant.ps1         Descarga el binario de Qdrant + dashboard
 │
+├── .agents/skills/              Skills de IA instaladas (contenido real)
+├── .claude/skills/              Skills visibles para Claude Code (junctions → .agents/skills)
+├── skills-lock.json             Versiones y hashes de las skills instaladas
+├── .graphifyignore              Excluye el tooling del grafo de conocimiento
+├── graphify-out/                Grafo de conocimiento generado (ignorado en git)
+│
 └── qdrant-x86_64-pc-windows-msvc/   Binario y datos de Qdrant (ignorados en git)
 ```
+
+---
+
+## Skills de IA usadas en el proyecto
+
+El repo versiona las skills que asisten el desarrollo, para que cualquiera que lo clone
+trabaje con el mismo contexto. Se gestionan con la CLI [`npx skills`](https://skills.sh/)
+y quedan registradas con su hash en `skills-lock.json`.
+
+### Dominio del proyecto (backend, RAG, frontend)
+
+| Skill | Fuente | Para qué |
+|---|---|---|
+| `fastapi` | `fastapi/fastapi` (oficial) | Convenciones de FastAPI: modelos Pydantic, dependencias, respuestas en streaming (SSE) |
+| `qdrant-search-quality` | `qdrant/skills` (oficial) | Diagnosticar y mejorar la relevancia: búsqueda híbrida, reranking, medir recall@k, golden set |
+| `langchain-rag` | `langchain-ai/langchain-skills` (oficial) | RAG con LangChain: loaders, `RecursiveCharacterTextSplitter`, embeddings, vector stores |
+| `angular-signals` | `analogjs/angular-skills` | Estado reactivo con signals en Angular 20+: `signal()`, `computed()`, `linkedSignal()`, `effect()` |
+
+### Interfaz y movimiento
+
+| Skill | Fuente | Para qué |
+|---|---|---|
+| `apple-design` | `emilkowalski/skill` | Fundamentos de interfaz y movimiento fluido: interrumpibilidad, springs, materiales, tipografía |
+| `improve-animations` | `emilkowalski/skill` | Auditar el movimiento existente y producir planes de mejora priorizados |
+| `review-animations` | `emilkowalski/skill` | Revisar animaciones contra estándares y emitir un veredicto |
+| `prototype` | `emilkowalski/skill` | Prototipado interactivo de interacciones antes de implementarlas |
+| `pick-ui-library` | `emilkowalski/skill` | Elegir librería de UI según el caso |
+
+```bash
+# tras clonar el repo: recrea los enlaces que Claude Code lee
+npx skills experimental_install
+
+# buscar, instalar y listar
+npx skills find <tema>
+npx skills add <owner/repo@skill>
+npx skills list
+
+# actualizar a la última versión
+npx skills update
+```
+
+El contenido real de cada skill se versiona en `.agents/skills/`. Lo que Claude Code lee es
+`.claude/skills/`, que solo contiene enlaces hacia allá y está ignorado en git para no
+duplicar cada archivo; de ahí el `experimental_install` tras clonar.
+
+> Las skills corren con los permisos del agente: revisa el `SKILL.md` antes de confiar en una nueva.
+
+---
+
+## Grafo de conocimiento (graphify)
+
+El repo se puede convertir en un grafo navegable de su propio código para responder preguntas
+de arquitectura sin rastrear archivo por archivo. Se genera con la skill global
+`graphify` (`/graphify` en Claude Code, o la CLI `graphify` del paquete `graphifyy`).
+
+```bash
+# construir o actualizar (solo código: sin LLM, sin coste de tokens)
+graphify update .
+
+# consultar
+graphify query "cómo viaja un PDF desde la subida hasta Qdrant"
+graphify path "Indexer" "QdrantService"
+graphify explain "Retriever"
+```
+
+Salidas en `graphify-out/` (ignorado en git, se regenera):
+
+| Archivo | Qué es |
+|---|---|
+| `graph.html` | Grafo interactivo, se abre en el navegador sin servidor |
+| `GRAPH_REPORT.md` | Informe: comunidades, nodos más conectados, conexiones inesperadas |
+| `graph.json` | Datos crudos del grafo |
+| `cost.json` | Tokens consumidos por corrida |
+
+Estado actual: **529 nodos y 737 aristas** sobre 89 archivos, agrupados en 48 comunidades.
+La extracción de código es determinista (AST) y no gasta tokens; solo la prosa
+(`README`s y plantillas `.html`) necesita un modelo, y queda en caché entre corridas.
+
+`.graphifyignore` excluye `.agents/` y `.claude/`: la documentación de las skills no es
+parte del proyecto, y dejarla dentro gastaba tokens e inventaba comunidades ajenas al código.

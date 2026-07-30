@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "frontend_src_app_features_chat_chat_component_chat_template",
+      "label": "Chat studio template (thread + composer + inspector)",
+      "file_type": "code",
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L1-160",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_chat_chat_component_send_stop_shared_slot",
+      "label": "Send and stop share one slot (affordance changes, control does not move)",
+      "file_type": "rationale",
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L103-127",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_chat_chat_component_error_as_system_state",
+      "label": "Failure shown as a system state with a retry exit",
+      "file_type": "rationale",
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L69-87",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_chat_chat_component_copy_signal_i18n",
+      "label": "copy() signal-based i18n pattern",
+      "file_type": "concept",
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L5-158",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "frontend_src_app_features_chat_chat_component_chat_template",
+      "target": "frontend_src_app_features_home_home_component_enter_animation_classes",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_chat_chat_component_chat_template",
+      "target": "frontend_src_app_features_chat_chat_component_send_stop_shared_slot",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L103-127",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_chat_chat_component_chat_template",
+      "target": "frontend_src_app_features_chat_chat_component_error_as_system_state",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L69-87",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_chat_chat_component_chat_template",
+      "target": "frontend_src_app_features_chat_chat_component_copy_signal_i18n",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/chat/chat.component.html",
+      "source_location": "L5",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

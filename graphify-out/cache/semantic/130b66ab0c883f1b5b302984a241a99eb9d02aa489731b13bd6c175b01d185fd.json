@@ -1,0 +1,90 @@
+{
+  "nodes": [
+    {
+      "id": "frontend_src_app_features_home_home_component_home_template",
+      "label": "Home overview template (hero + health status + path cards)",
+      "file_type": "code",
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L1-83",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_home_home_component_enter_animation_classes",
+      "label": "enter / enter-group entrance animation convention",
+      "file_type": "concept",
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L1-62",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "frontend_src_app_features_home_home_component_surface_design_tokens",
+      "label": "surface / eyebrow / t-* design token vocabulary",
+      "file_type": "concept",
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L1-30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "frontend_src_app_features_home_home_component_home_template",
+      "target": "readme_health_check_contract",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L20-56",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_home_home_component_home_template",
+      "target": "frontend_src_app_features_documents_documents_component_documents_template",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_home_home_component_home_template",
+      "target": "frontend_src_app_features_chat_chat_component_chat_template",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_home_home_component_home_template",
+      "target": "frontend_src_app_features_home_home_component_enter_animation_classes",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_app_features_home_home_component_home_template",
+      "target": "frontend_src_app_features_home_home_component_surface_design_tokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/app/features/home/home.component.html",
+      "source_location": "L3",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": []
+}

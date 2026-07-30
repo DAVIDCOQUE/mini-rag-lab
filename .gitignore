@@ -25,6 +25,28 @@ qdrant-x86_64-pc-windows-msvc/storage/
 qdrant-x86_64-pc-windows-msvc/snapshots/
 qdrant-x86_64-pc-windows-msvc/static/
 
+# ---------- Grafo de conocimiento (graphify) ----------
+# Salida generada, se reconstruye con `graphify update .`
+graphify-out/
+
+# ---------- Grafo de conocimiento (graphify) ----------
+# Se versiona la cache de extraccion semantica: es la unica parte que cuesta
+# tokens de LLM. El grafo (graph.json, graph.html) se regenera gratis con
+# `graphify update .`, asi que queda fuera para no meter ~930 KB de salida
+# generada en cada commit que toque codigo.
+!graphify-out/
+graphify-out/*
+!graphify-out/cache/
+graphify-out/cache/ast/
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/.graphify_labels.json
+
+# ---------- Skills de IA ----------
+# El contenido real vive en .agents/skills/ y se versiona. .claude/skills/ solo
+# contiene junctions hacia alla, asi que versionarlo duplicaria cada archivo.
+# Restaurar las junctions tras clonar: npx skills experimental_install
+/.claude/skills/
+
 # ---------- IDE / OS ----------
 .vscode/
 .idea/
