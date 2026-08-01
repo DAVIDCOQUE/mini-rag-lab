@@ -5,8 +5,16 @@ import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ChatMessage, ChatRole } from '../models/chat-message.model';
 
+interface ChatSource {
+  filename: string;
+  score: number;
+  chunk: string;
+}
+
 interface ChatApiResponse {
-  response: string;
+  question: string;
+  answer: string;
+  sources: ChatSource[];
 }
 
 // El servicio expone la clase de fallo, no un texto: la traduccion es cosa de la
@@ -72,7 +80,7 @@ export class ChatService {
       .post<ChatApiResponse>(`${this.baseUrl}/api/chat`, { message: text })
       .subscribe({
         next: (res) => {
-          this.append('assistant', res.response);
+          this.append('assistant', res.answer);
           this.settle();
         },
         error: () => {

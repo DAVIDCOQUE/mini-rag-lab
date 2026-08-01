@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     RERANKER_MODEL: str = "jinaai/jina-reranker-v2-base-multilingual"
     RERANK_CANDIDATES: int = 20  # candidatos que trae el bi-encoder antes de reordenar
 
+    # --- Chat (RAG conversacional) ---
+    CHAT_TOP_K: int = 5  # chunks recuperados como contexto para el LLM
+    CHAT_MIN_RESULTS: int = 1  # minimo de chunks recuperados para intentar responder
+    # Score minimo del mejor chunk para llamar al LLM (si no, se responde el fallback
+    # sin gastar una llamada). Asume reranker activo: son logits del cross-encoder, no
+    # una similitud 0-1. Calibrado contra este corpus: preguntas con respuesta real
+    # rondaron >= -0.5 en el top-1; preguntas sin relacion, <= -2.4. Si se desactiva
+    # RERANK_ENABLED este umbral deja de tener sentido (la escala cambia a similitud
+    # coseno) y deberia ajustarse o dejar el filtro inefectivo a proposito.
+    CHAT_MIN_SCORE: float = -1.5
+
     # --- Almacenamiento de documentos ---
     STORAGE_DIR: str = "storage"
     MAX_UPLOAD_MB: int = 20

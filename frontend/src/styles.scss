@@ -43,6 +43,15 @@ body {
   height: 100%;
 }
 
+// Sin esto app-root (elemento custom, display inline por defecto) queda con
+// altura "auto": rompe la cadena de height:100% que usan los layouts internos
+// para fijarse al viewport, y el contenido que no entra queda cortado sin
+// forma de hacerle scroll.
+app-root {
+  display: block;
+  height: 100%;
+}
+
 html {
   // Respeta el tamano de texto del usuario en lugar de fijar un px base.
   font: 100% / 1.5 var(--font-sans);

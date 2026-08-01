@@ -395,22 +395,17 @@
 // -----------------------------------------------------------------------------
 // Adaptacion
 // -----------------------------------------------------------------------------
+// Sin dos columnas, hilo e inspector se apilan pero mantienen su propio
+// scroll interno (filas 1fr con min-height:0): la pagina nunca hace scroll,
+// asi el composer se queda pegado abajo igual que en el layout ancho.
 @media (max-width: 1180px) {
-  :host {
-    height: auto;
-  }
-
   .studio {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  // Sin dos columnas el hilo necesita una altura propia para no colapsar.
-  .thread {
-    min-height: 60vh;
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
   }
 
   .inspector {
-    overflow: visible;
+    min-height: 0;
   }
 }
 

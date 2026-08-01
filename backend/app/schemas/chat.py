@@ -5,5 +5,13 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class ChatSource(BaseModel):
+    filename: str
+    score: float
+    chunk: str
+
+
 class ChatResponse(BaseModel):
-    response: str
+    question: str
+    answer: str
+    sources: list[ChatSource]
