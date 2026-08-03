@@ -10,7 +10,20 @@ export class SearchService {
   private readonly http = inject(HttpClient);
   private readonly endpoint = `${environment.apiUrl}/api/search`;
 
-  search(query: string, limit = 5): Observable<SearchResponse> {
-    return this.http.post<SearchResponse>(this.endpoint, { query, limit });
+  // generate pide ademas la respuesta del LLM sobre los chunks recuperados; la
+  // politica es de la vista, no del servicio. promptCode elige con que instrucciones
+  // se genera: sin el manda la variante activa del mantenedor.
+  search(
+    query: string,
+    limit = 5,
+    generate = false,
+    promptCode?: string
+  ): Observable<SearchResponse> {
+    return this.http.post<SearchResponse>(this.endpoint, {
+      query,
+      limit,
+      generate,
+      prompt_code: promptCode ?? null,
+    });
   }
 }

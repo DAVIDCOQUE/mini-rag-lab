@@ -28,6 +28,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/search/search.component').then((m) => m.SearchComponent),
       },
+      {
+        path: 'prompts',
+        loadComponent: () =>
+          import('./features/prompts/prompts.component').then((m) => m.PromptsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -360,10 +360,15 @@
   gap: var(--space-1);
 }
 
+// El codigo de idioma ocupa el sitio de un icono: se centra como caja y compensa
+// el hueco que el tracking deja tras la ultima letra.
 .topbar__locale {
+  display: inline-block;
+  line-height: 1;
   font-size: var(--text-caption-size);
   font-weight: var(--weight-bold);
   letter-spacing: 0.06em;
+  text-indent: 0.06em;
 }
 
 .shell {
@@ -388,7 +393,7 @@
 
   .dock {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: var(--space-1);
     padding: var(--space-2) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border);

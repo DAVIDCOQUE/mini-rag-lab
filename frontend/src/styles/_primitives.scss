@@ -5,6 +5,34 @@
 // redefinir tarjeta, eyebrow y panel en cada componente.
 
 // -----------------------------------------------------------------------------
+// Iconos
+// -----------------------------------------------------------------------------
+// El glifo de un icono se posiciona segun su line box, no segun la caja del
+// elemento. Material fija line-height en 24px, asi que cualquier componente que
+// baje el font-size deja el glifo descolgado dentro de su propia caja (y recortado
+// por el overflow del propio mat-icon). Anclando el line box al tamano del glifo,
+// caja y dibujo coinciden en todas las escalas.
+.mat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+// Los botones de icono alinean su contenido por baseline dentro de un line box mas
+// alto que el propio glifo. Con el icono de 24px de Material apenas se nota, pero
+// cualquier otro contenido (o cualquier tamano distinto) queda descolgado. Centrar
+// como caja deja el contenido en el centro real del area de pulsacion.
+// Dos clases: los estilos de Material se inyectan despues del bundle global y con
+// una sola clase ganarian por orden de cascada.
+.mat-mdc-icon-button.mat-mdc-button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+// -----------------------------------------------------------------------------
 // Tipografia
 // -----------------------------------------------------------------------------
 .t-display,

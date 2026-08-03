@@ -1,0 +1,189 @@
+<div class="workbench enter">
+  <!-- Columna de variantes: la lista manda, el editor es su detalle. -->
+  <aside class="catalog surface surface--panel">
+    <header class="catalog__head">
+      <div>
+        <span class="eyebrow">{{ copy().variants }}</span>
+        <p class="catalog__count t-caption">{{ templates().length }}</p>
+      </div>
+
+      <button mat-flat-button type="button" class="catalog__new" (click)="startNew()">
+        <mat-icon>add</mat-icon>
+        {{ copy().newVariant }}
+      </button>
+    </header>
+
+    <div class="catalog__list scroll-region">
+      <!-- El prompt del repositorio encabeza la lista: es el comportamiento base y
+           tambien una opcion seleccionable, no un caso especial escondido. -->
+      <article
+        class="variant variant--default"
+        [class.variant--active]="activeCode() === 'default'"
+      >
+        <div class="variant__copy">
+          <strong class="variant__name">{{ copy().defaultLabel }}</strong>
+          <code class="variant__code t-mono">default</code>
+        </div>
+
+        @if (activeCode() === 'default') {
+          <span class="badge badge--ok">{{ copy().activeBadge }}</span>
+        } @else {
+          <button mat-stroked-button type="button" (click)="activateDefault()">
+            {{ copy().activate }}
+          </button>
+        }
+      </article>
+
+      @for (template of templates(); track template.code) {
+        <article
+          class="variant"
+          [class.variant--selected]="editing()?.code === template.code"
+          [class.variant--active]="template.is_active"
+        >
+          <button type="button" class="variant__open" (click)="edit(template)">
+            <span class="variant__copy">
+              <strong class="variant__name">{{ template.name }}</strong>
+              <code class="variant__code t-mono">{{ template.code }}</code>
+            </span>
+          </button>
+
+          <div class="variant__actions">
+            @if (template.is_active) {
+              <span class="badge badge--ok">{{ copy().activeBadge }}</span>
+            } @else {
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="activate(template)"
+                [title]="copy().activate"
+              >
+                {{ copy().activate }}
+              </button>
+            }
+
+            @if (pendingDelete() === template.code) {
+              <span class="confirm">
+                <button mat-flat-button type="button" class="confirm__yes" (click)="confirmDelete(template)">
+                  {{ copy().confirmYes }}
+                </button>
+                <button mat-stroked-button type="button" (click)="cancelDelete()">
+                  {{ copy().confirmNo }}
+                </button>
+              </span>
+            } @else {
+              <button
+                mat-icon-button
+                type="button"
+                (click)="askDelete(template)"
+                [attr.aria-label]="copy().delete"
+                [title]="copy().delete"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </div>
+        </article>
+      }
+
+      @if (templates().length === 0) {
+        <p class="catalog__empty t-caption">{{ copy().empty }}</p>
+      }
+    </div>
+  </aside>
+
+  <section class="work">
+    <header class="work__intro">
+      <span class="eyebrow">{{ copy().eyebrow }}</span>
+      <h2 class="t-title-2">{{ copy().headline }}</h2>
+    </header>
+
+    <!-- Editor y referencia en paralelo: se escribe una variante mirando el original,
+         no recordandolo. -->
+    <div class="work__panels">
+      <form class="editor surface" (ngSubmit)="save()">
+      <header class="editor__head">
+        <span class="eyebrow">
+          {{ isCreating() ? copy().editorNew : copy().editorEdit }}
+          @if (!isCreating()) {
+            <code class="t-mono">{{ editing()?.code }}</code>
+          }
+        </span>
+
+        <div class="editor__actions">
+          @if (!isCreating()) {
+            <button mat-stroked-button type="button" (click)="startNew()">
+              {{ copy().cancel }}
+            </button>
+          }
+          <button mat-flat-button type="submit" [disabled]="!canSave() || saving()">
+            <mat-icon>save</mat-icon>
+            {{ copy().save }}
+          </button>
+        </div>
+      </header>
+
+      <div class="editor__row">
+        <label class="field-group">
+          <span class="field-group__label t-caption">{{ copy().codeLabel }}</span>
+          <input
+            class="field"
+            name="code"
+            [(ngModel)]="draftCode"
+            [disabled]="!isCreating()"
+            placeholder="conciso-v2"
+          />
+          <span class="field-group__hint t-caption">{{ copy().codeHint }}</span>
+        </label>
+
+        <label class="field-group">
+          <span class="field-group__label t-caption">{{ copy().nameLabel }}</span>
+          <input
+            class="field"
+            name="name"
+            [(ngModel)]="draftName"
+            placeholder="Respuesta breve"
+          />
+        </label>
+      </div>
+
+      <label class="field-group">
+        <span class="field-group__label t-caption">{{ copy().bodyLabel }}</span>
+        <textarea class="field editor__body" name="body" [(ngModel)]="draftBody"></textarea>
+        <span class="field-group__hint t-caption">{{ copy().placeholderMarker }}</span>
+      </label>
+
+      @if (errorMessage(); as message) {
+        <p class="editor__error">
+          <mat-icon>error</mat-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+    </form>
+
+    <!-- Referencia permanente: se escribe una variante mirando el original. -->
+    @if (defaultPrompt(); as base) {
+      <article class="reference surface surface--accent">
+        <header class="reference__head">
+          <div class="reference__copy">
+            <span class="eyebrow">{{ copy().defaultLabel }}</span>
+            <p class="reference__hint t-caption">{{ copy().defaultHint }}</p>
+          </div>
+
+          <button mat-stroked-button type="button" (click)="useDefaultAsBase()">
+            <mat-icon>content_copy</mat-icon>
+            {{ copy().useAsBase }}
+          </button>
+        </header>
+
+        <pre class="reference__body t-mono scroll-region">{{ base.body }}</pre>
+
+        <footer class="reference__foot t-caption">
+          <code class="t-mono">{{ base.no_answer_placeholder }}</code>
+          <mat-icon>arrow_forward</mat-icon>
+          <span>{{ base.no_answer_message }}</span>
+        </footer>
+      </article>
+      }
+    </div>
+  </section>
+</div>

@@ -68,7 +68,8 @@
           [attr.aria-label]="chrome().navToggle"
           [title]="chrome().navToggle"
         >
-          <mat-icon>{{ compact() ? 'menu' : 'panel_left' }}</mat-icon>
+          <!-- panel_left no existe en Material Symbols: se renderizaba como texto. -->
+          <mat-icon>{{ compact() ? 'menu' : 'left_panel_close' }}</mat-icon>
         </button>
 
         <div class="topbar__copy">

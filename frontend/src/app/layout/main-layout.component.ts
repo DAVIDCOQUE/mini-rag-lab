@@ -97,6 +97,12 @@ export class MainLayoutComponent {
             icon: 'manage_search',
             description: 'Búsqueda semántica',
           },
+          {
+            path: '/prompts',
+            label: 'Prompts',
+            icon: 'tune',
+            description: 'Comportamiento del agente',
+          },
         ]
       : [
           {
@@ -122,6 +128,12 @@ export class MainLayoutComponent {
             label: 'Explore',
             icon: 'manage_search',
             description: 'Semantic search',
+          },
+          {
+            path: '/prompts',
+            label: 'Prompts',
+            icon: 'tune',
+            description: 'Agent behaviour',
           },
         ];
   });

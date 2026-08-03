@@ -84,7 +84,8 @@
   flex: 0 0 auto;
 }
 
-.suggestions {
+.suggestions,
+.prompt-picker {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -92,8 +93,151 @@
   margin-top: var(--space-3);
 }
 
+.prompt-picker__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-1);
+
+  mat-icon {
+    font-size: 0.9375rem;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    color: var(--text-tertiary);
+  }
+}
+
+// Chip seleccionado: es un estado, no un hover que se quedo pegado.
+.chip--on {
+  border-color: var(--accent-border);
+  background: var(--accent-wash-strong);
+  color: var(--accent-text);
+  font-weight: var(--weight-semibold);
+}
+
+.answer__prompt {
+  margin-left: var(--space-1);
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+
+  code {
+    color: var(--accent-text);
+  }
+}
+
 .suggestions__label {
   margin-right: var(--space-1);
+}
+
+// -----------------------------------------------------------------------------
+// Espera. La barra sola no dice que hay dos etapas en curso.
+// -----------------------------------------------------------------------------
+.working {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.working__label {
+  padding: 0 var(--space-1);
+}
+
+// -----------------------------------------------------------------------------
+// Respuesta generada
+// -----------------------------------------------------------------------------
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: var(--space-4);
+  border-color: var(--accent-border);
+  border-radius: var(--radius-lg);
+  animation: surface-enter var(--dur-base) var(--ease-out) both;
+
+  @include motion.reduced-motion {
+    animation-name: surface-fade;
+  }
+}
+
+.answer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.answer__body {
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.answer__note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--warn-text);
+  }
+}
+
+// Coste por etapa: es dato de laboratorio, asi que va en cifras alineadas.
+.timings {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.timing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: var(--text-caption-size);
+  color: var(--text-tertiary);
+
+  b {
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+
+  mat-icon {
+    font-size: 0.9375rem;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    color: var(--text-tertiary);
+  }
+}
+
+// El total es la suma que interesa comparar entre consultas.
+.timing--total b {
+  color: var(--accent-text);
+}
+
+// Encabeza los chunks para dejar explicito que son el contexto de la respuesta.
+.context-label {
+  flex: 0 0 auto;
+  margin-top: var(--space-2);
+  padding: 0 var(--space-1);
 }
 
 // -----------------------------------------------------------------------------

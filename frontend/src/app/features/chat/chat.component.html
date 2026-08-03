@@ -91,9 +91,6 @@
       <textarea
         class="field composer__input"
         #composer
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="1"
-        cdkAutosizeMaxRows="8"
         name="draft"
         [(ngModel)]="draft"
         (keydown)="onKeydown($event)"

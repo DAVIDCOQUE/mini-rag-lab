@@ -32,6 +32,36 @@
       </button>
     </form>
 
+    <!-- Elegir instrucciones aqui es una prueba puntual: no cambia la variante que
+         el chat tiene en uso. -->
+    <div class="prompt-picker">
+      <span class="prompt-picker__label t-caption">
+        <mat-icon>tune</mat-icon>
+        {{ copy().promptLabel }}
+      </span>
+
+      <button
+        type="button"
+        class="chip"
+        [class.chip--on]="selectedPrompt() === 'default'"
+        (click)="selectedPrompt.set('default')"
+      >
+        {{ copy().promptDefault }}
+      </button>
+
+      @for (option of promptOptions(); track option.code) {
+        <button
+          type="button"
+          class="chip"
+          [class.chip--on]="selectedPrompt() === option.code"
+          (click)="selectedPrompt.set(option.code)"
+          [title]="option.name"
+        >
+          {{ option.name }}
+        </button>
+      }
+    </div>
+
     <div class="suggestions">
       <span class="suggestions__label t-caption">{{ copy().suggestions }}</span>
       @for (prompt of copy().quickQueries; track prompt) {
@@ -43,7 +73,10 @@
   </section>
 
   @if (loading()) {
-    <mat-progress-bar mode="indeterminate" />
+    <div class="working">
+      <mat-progress-bar mode="indeterminate" />
+      <span class="working__label t-caption">{{ copy().working }}</span>
+    </div>
   }
 
   @if (searched() && results().length > 0) {
@@ -66,6 +99,57 @@
         <mat-icon>search_off</mat-icon>
         <p>{{ copy().noResults }}</p>
       </div>
+    }
+
+    <!-- La respuesta encabeza la lista y los chunks quedan debajo como su evidencia:
+         el orden de lectura es el del flujo, no el de la llamada al backend. -->
+    @if (answer(); as text) {
+      <article class="answer surface surface--accent">
+        <header class="answer__head">
+          <span class="eyebrow">
+            {{ copy().answerLabel }}
+            @if (usedPrompt(); as code) {
+              <span class="answer__prompt">· {{ copy().promptUsed }} <code class="t-mono">{{ code }}</code></span>
+            }
+          </span>
+
+          @if (timings(); as t) {
+            <div class="timings">
+              <span class="timing">
+                <mat-icon>travel_explore</mat-icon>
+                {{ copy().retrievalTime }}
+                <b>{{ formatDuration(t.retrieval_ms) }}</b>
+              </span>
+
+              @if (t.generation_ms !== null) {
+                <span class="timing">
+                  <mat-icon>bolt</mat-icon>
+                  {{ copy().generationTime }}
+                  <b>{{ formatDuration(t.generation_ms) }}</b>
+                </span>
+              }
+
+              <span class="timing timing--total">
+                <mat-icon>timer</mat-icon>
+                {{ copy().totalTime }}
+                <b>{{ formatDuration(t.total_ms) }}</b>
+              </span>
+            </div>
+          }
+        </header>
+
+        <p class="answer__body">{{ text }}</p>
+
+        <!-- Sin llamada al modelo el dato importante es por que no la hubo. -->
+        @if (generationSkipped()) {
+          <p class="answer__note t-caption">
+            <mat-icon>info</mat-icon>
+            <span>{{ copy().skipped }}</span>
+          </p>
+        }
+      </article>
+
+      <span class="eyebrow context-label">{{ copy().contextLabel }}</span>
     }
 
     @for (item of results(); track item.document_id + '-' + item.chunk_index; let i = $index) {

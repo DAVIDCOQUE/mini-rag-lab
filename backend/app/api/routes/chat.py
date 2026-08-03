@@ -14,6 +14,7 @@ from app.rag.llm_service import LLMError, generate
 from app.rag.prompt_builder import NO_ANSWER_MESSAGE, build_prompt
 from app.rag.retriever import Retriever
 from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
+from app.services import prompt_service
 from app.services.document_service import DocumentNotFoundError, get_document
 
 logger = logging.getLogger("mini_rag_lab")
@@ -53,7 +54,10 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         return ChatResponse(question=request.message, answer=NO_ANSWER_MESSAGE, sources=[])
 
     chunks = [point.payload["content"] for point in points]
-    prompt = build_prompt(request.message, chunks)
+    # El chat no elige prompt: usa la variante activa del mantenedor y, si no hay
+    # ninguna, el prompt del repositorio.
+    system_prompt, prompt_code = prompt_service.resolve_prompt(db)
+    prompt = build_prompt(request.message, chunks, system_prompt)
 
     start = time.perf_counter()
     try:
@@ -64,7 +68,12 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             detail="No fue posible conectar con Ollama.",
         )
     elapsed = time.perf_counter() - start
-    logger.info("Respuesta del modelo '%s' en %.2fs", settings.LLM_MODEL, elapsed)
+    logger.info(
+        "Respuesta del modelo '%s' con el prompt '%s' en %.2fs",
+        settings.LLM_MODEL,
+        prompt_code,
+        elapsed,
+    )
 
     sources = [
         ChatSource(filename=filename, score=point.score, chunk=point.payload["content"])

@@ -281,27 +281,44 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+// El campo sigue al contenido por si solo (field-sizing) y ademas se puede fijar
+// a mano arrastrando el canto: una altura explicita gana sobre la intrinseca, asi
+// que el arrastre del usuario manda a partir de ese momento.
 .composer__input {
   flex: 1 1 auto;
-  resize: none;
-  max-height: 12rem;
+  resize: vertical;
+  field-sizing: content;
+  min-height: 3.25rem;
+  max-height: 60vh;
   border-radius: var(--radius-lg);
 }
 
-// Boton cuadrado alineado al canto inferior del campo.
+// Boton cuadrado alineado al canto inferior del campo. Los tokens son los de
+// Material 20 (--mat-button-*); los --mdc-* ya no existen y la forma se quedaba
+// en pastilla.
 .composer__send {
-  --mdc-filled-button-container-shape: var(--radius-md);
+  --mat-button-filled-container-shape: var(--radius-md);
   flex: 0 0 auto;
   min-width: 0;
   width: 2.875rem;
   height: 2.875rem;
   padding: 0;
+
+  // Material reserva hueco a la derecha del icono para la etiqueta del boton;
+  // sin etiqueta ese margen descentra el glifo.
+  mat-icon {
+    margin: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 1.25rem;
+    line-height: 1.25rem;
+  }
 }
 
 // Detener no es la accion primaria: se lee como control neutro, no como destino.
 .composer__send--stop {
-  --mdc-filled-button-container-color: var(--surface-3);
-  --mdc-filled-button-label-text-color: var(--text-primary);
+  --mat-button-filled-container-color: var(--surface-3);
+  --mat-button-filled-label-text-color: var(--text-primary);
 }
 
 // -----------------------------------------------------------------------------
