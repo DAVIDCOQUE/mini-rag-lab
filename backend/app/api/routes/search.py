@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.rag.embedding_service import EmbeddingError
 from app.rag.llm_service import LLMError
-from app.rag.retriever import Retriever
 from app.schemas.search import (
     SearchRequest,
     SearchResponse,
@@ -21,7 +20,9 @@ logger = logging.getLogger("mini_rag_lab")
 
 router = APIRouter(prefix="/search", tags=["search"])
 
-retriever = Retriever()
+# Se reutiliza el retriever del servicio en lugar de crear otro: cada Retriever trae
+# su propio reranker, y cargar dos veces el mismo cross-encoder solo duplica memoria.
+retriever = rag_service.retriever
 
 UNREACHABLE_EMBEDDING = "No fue posible generar el embedding de la consulta (¿Ollama activo?)."
 UNREACHABLE_SEARCH = "No fue posible realizar la búsqueda (¿Qdrant activo?)."

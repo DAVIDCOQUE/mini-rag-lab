@@ -26,6 +26,25 @@ retriever = Retriever()
 router = QueryRouter()
 
 
+def warm_up() -> None:
+    """Deja listo lo que se inicializa perezosamente, antes de la primera consulta real.
+
+    Sin esto lo paga el primer usuario: el cross-encoder tarda unos 3 s en cargar su
+    modelo ONNX y los centroides del router necesitan embeber sus frases de ejemplo.
+    Es best-effort: si un servicio esta caido, la app arranca igual y el fallo aparece
+    cuando se use de verdad, con su mensaje propio.
+    """
+    try:
+        retriever.qdrant_service.ensure_collection()
+        vector = retriever.embedding_service.embed_query("calentamiento")
+        router.classify(vector)
+        if retriever.reranker is not None:
+            retriever.reranker.rerank("calentamiento", ["texto de calentamiento"])
+        logger.info("Calentamiento completado: reranker y router listos.")
+    except Exception as exc:
+        logger.warning("Calentamiento incompleto (%s); se hara en la primera consulta.", exc)
+
+
 @dataclass
 class RagOutcome:
     """Resultado de resolver una consulta, con el rastro de como se resolvio."""

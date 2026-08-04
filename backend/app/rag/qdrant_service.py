@@ -23,9 +23,17 @@ class QdrantService:
             host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=30
         )
         self.collection = settings.QDRANT_COLLECTION
+        self._collection_ready = False
 
     def ensure_collection(self) -> None:
-        """Crea la coleccion si no existe (vectores de EMBEDDING_DIM, distancia coseno)."""
+        """Crea la coleccion si no existe (vectores de EMBEDDING_DIM, distancia coseno).
+
+        Se comprueba una vez por instancia: preguntarlo en cada busqueda anade un viaje
+        de red por consulta para responder siempre lo mismo.
+        """
+        if self._collection_ready:
+            return
+
         if not self.client.collection_exists(self.collection):
             self.client.create_collection(
                 self.collection,
@@ -33,6 +41,7 @@ class QdrantService:
                     size=settings.EMBEDDING_DIM, distance=Distance.COSINE
                 ),
             )
+        self._collection_ready = True
 
     def upsert_chunks(self, items: list[dict]) -> None:
         """Inserta/actualiza puntos. Cada item: {id, vector, payload}."""

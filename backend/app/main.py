@@ -1,5 +1,7 @@
 import logging
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,11 +9,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.services import rag_service
 
 configure_logging()
 logger = logging.getLogger("mini_rag_lab")
 
-app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION, debug=settings.DEBUG)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # Cargar los modelos al arrancar y no en la primera consulta: el coste se paga
+    # durante el despliegue, no en la cara del primer usuario.
+    rag_service.warm_up()
+    yield
+
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    debug=settings.DEBUG,
+    lifespan=lifespan,
+)
 
 # CORS para permitir el consumo desde el frontend Angular.
 app.add_middleware(
