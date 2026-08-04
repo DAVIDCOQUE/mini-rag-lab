@@ -163,9 +163,9 @@
           </span>
 
           <span class="result__score">
-            <span class="result__score-value">{{ scorePercent(item.score) }}%</span>
+            <span class="result__score-value t-mono">{{ formatScore(item.score) }}</span>
             <span class="result__bar" [attr.aria-label]="copy().relevance">
-              <i [style.transform]="'scaleX(' + item.score + ')'"></i>
+              <i [style.transform]="'scaleX(' + scoreBar(item.score) + ')'"></i>
             </span>
           </span>
         </header>

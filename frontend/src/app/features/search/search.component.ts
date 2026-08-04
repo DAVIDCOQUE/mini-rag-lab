@@ -170,8 +170,17 @@ export class SearchComponent {
     this.timings.set(null);
   }
 
-  scorePercent(score: number): number {
-    return Math.round(score * 100);
+  // Con el reranker activo el score es un logit del cross-encoder: sin techo y con
+  // negativos. Multiplicarlo por 100 producia "115%" y "-269%". El valor crudo es el
+  // dato real y ademas se compara de un vistazo con el umbral de CHAT_MIN_SCORE.
+  formatScore(score: number): string {
+    return `${score >= 0 ? '+' : ''}${score.toFixed(2)}`;
+  }
+
+  // La barra solo orienta, asi que el logit se comprime a 0-1 con una sigmoide. No es
+  // una probabilidad: es una escala monotona para poder comparar barras entre si.
+  scoreBar(score: number): number {
+    return 1 / (1 + Math.exp(-score));
   }
 
   // Por debajo del segundo los milisegundos son la unidad legible; por encima,
