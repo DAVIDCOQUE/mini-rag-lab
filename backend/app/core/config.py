@@ -57,6 +57,15 @@ class Settings(BaseSettings):
     # coseno) y deberia ajustarse o dejar el filtro inefectivo a proposito.
     CHAT_MIN_SCORE: float = -1.5
 
+    # --- Router de consultas ---
+    # Clasifica la consulta antes de recuperar: solo el camino institucional pasa por
+    # Qdrant y el reranker. Apagarlo devuelve el comportamiento de recuperar siempre.
+    ROUTER_ENABLED: bool = True
+    # Cuanto tiene que ganar otro camino a "institucional" para llevarse la consulta.
+    # Al alza el sistema busca mas (mas lento, mas seguro); a la baja responde mas de
+    # memoria (mas rapido, mas riesgo de inventar sobre la institucion).
+    ROUTER_SAFETY_MARGIN: float = 0.04
+
     # --- Almacenamiento de documentos ---
     STORAGE_DIR: str = "storage"
     MAX_UPLOAD_MB: int = 20

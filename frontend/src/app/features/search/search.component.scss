@@ -170,6 +170,43 @@
   flex-wrap: wrap;
 }
 
+// Camino tomado. Neutro salvo cuando el sistema decidio no consultar el corpus:
+// ahi conviene que se note, porque cambia como hay que leer la respuesta.
+.route {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: var(--text-caption-size);
+  color: var(--text-secondary);
+
+  mat-icon {
+    font-size: 0.9375rem;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    color: var(--text-tertiary);
+  }
+}
+
+.route--institutional {
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+
+  mat-icon {
+    color: var(--accent);
+  }
+}
+
+.route--general,
+.route--smalltalk {
+  border-color: var(--warn-border, var(--border-subtle));
+  color: var(--warn-text);
+}
+
 .answer__body {
   margin: 0;
   font-size: var(--text-body-size);

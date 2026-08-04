@@ -6,12 +6,16 @@ export interface SearchResultItem {
   score: number;
 }
 
-// Coste de cada etapa del flujo, en milisegundos.
+// Coste de cada etapa, en milisegundos. Nulo lo que no llegó a ocurrir.
 export interface SearchTimings {
-  retrieval_ms: number;
+  routing_ms: number | null;
+  retrieval_ms: number | null;
   generation_ms: number | null;
   total_ms: number;
 }
+
+// Camino elegido por el router. Solo institutional consulta la base vectorial.
+export type SearchRoute = 'institutional' | 'general' | 'smalltalk' | 'off_topic';
 
 export interface SearchResponse {
   query: string;
@@ -21,4 +25,6 @@ export interface SearchResponse {
   answer: string | null;
   generation_skipped: boolean;
   prompt_code: string | null;
+  route: SearchRoute | null;
+  route_scores: Record<string, number>;
 }

@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SearchRequest(BaseModel):
@@ -23,10 +23,11 @@ class SearchResultItem(BaseModel):
 
 
 class SearchTimings(BaseModel):
-    """Coste de cada etapa del flujo, en milisegundos."""
+    """Coste de cada etapa del flujo, en milisegundos. Nulo lo que no llego a ocurrir."""
 
-    retrieval_ms: float
-    # Nulo cuando no se pidio generar o cuando el contexto no llego al umbral.
+    # Incluye el embedding de la consulta, que el camino institucional reutiliza.
+    routing_ms: float | None = None
+    retrieval_ms: float | None = None
     generation_ms: float | None = None
     total_ms: float
 
@@ -43,3 +44,6 @@ class SearchResponse(BaseModel):
     # Prompt con el que se genero la respuesta, para que la vista pueda decir de que
     # instrucciones salio lo que se esta leyendo.
     prompt_code: str | None = None
+    # Camino elegido por el router y su similitud con cada uno, para poder ver por que.
+    route: str | None = None
+    route_scores: dict[str, float] = Field(default_factory=dict)

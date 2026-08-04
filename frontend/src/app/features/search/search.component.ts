@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { PromptTemplate } from '../../core/models/prompt.model';
-import { SearchResultItem, SearchTimings } from '../../core/models/search.model';
+import { SearchRoute, SearchResultItem, SearchTimings } from '../../core/models/search.model';
 import { PromptService } from '../../core/services/prompt.service';
 import { SearchService } from '../../core/services/search.service';
 import { UiPreferencesService } from '../../core/services/ui-preferences.service';
@@ -42,6 +42,16 @@ export class SearchComponent {
   readonly promptOptions = signal<PromptTemplate[]>([]);
   readonly selectedPrompt = signal<string>(DEFAULT_CODE);
   readonly usedPrompt = signal<string | null>(null);
+
+  // Camino que eligió el router. Explica por qué hay o no hay chunks debajo.
+  readonly route = signal<SearchRoute | null>(null);
+
+  // "Sin coincidencias" solo tiene sentido si se llegó a mirar el corpus: en los
+  // caminos que el router resuelve sin buscar, cero chunks es lo esperado.
+  readonly searchedCorpus = computed(() => {
+    const taken = this.route();
+    return taken === null || taken === 'institutional';
+  });
 
   constructor() {
     this.prompts.list().subscribe({
@@ -83,6 +93,13 @@ export class SearchComponent {
           promptLabel: 'Instrucciones',
           promptDefault: 'Por defecto',
           promptUsed: 'Generada con',
+          routingTime: 'Enrutado',
+          routes: {
+            institutional: 'Buscó en los documentos',
+            general: 'Conocimiento general, sin buscar',
+            smalltalk: 'Conversación, sin buscar',
+            off_topic: 'Fuera de ámbito, sin modelo',
+          },
           quickQueries: [
             'Resume el último documento indexado',
             'Chunks sobre onboarding o uso de API',
@@ -114,6 +131,13 @@ export class SearchComponent {
           promptLabel: 'Instructions',
           promptDefault: 'Default',
           promptUsed: 'Generated with',
+          routingTime: 'Routing',
+          routes: {
+            institutional: 'Searched the documents',
+            general: 'General knowledge, no search',
+            smalltalk: 'Small talk, no search',
+            off_topic: 'Off topic, no model',
+          },
           quickQueries: [
             'Summarize the latest indexed document',
             'Chunks about onboarding or API usage',
@@ -132,6 +156,8 @@ export class SearchComponent {
     this.generationSkipped.set(false);
     this.timings.set(null);
     this.usedPrompt.set(null);
+    this.route.set(null);
+    this.results.set([]);
 
     // generate: true — el backend recupera y genera en la misma llamada, y devuelve
     // el tiempo de cada etapa por separado.
@@ -142,6 +168,7 @@ export class SearchComponent {
         this.generationSkipped.set(res.generation_skipped);
         this.timings.set(res.timings);
         this.usedPrompt.set(res.prompt_code);
+        this.route.set(res.route);
         this.searched.set(true);
         this.loading.set(false);
       },

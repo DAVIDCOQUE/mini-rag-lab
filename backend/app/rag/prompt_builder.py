@@ -33,6 +33,38 @@ citando un contexto.
 directamente y sin frases introductorias sobre el origen de la información."""
 
 
+# Prompts de los caminos que no pasan por la base vectorial. Son cortos a proposito:
+# el router ya decidio de que va el mensaje, asi que cada uno resuelve un solo caso en
+# lugar de llevar dentro el arbol de decisiones completo.
+SMALLTALK_PROMPT = """Eres el asistente academico de la UNIAJC. El usuario te ha \
+saludado, se ha presentado o te ha dado las gracias.
+
+Responde en espanol, con calidez y en una o dos frases como maximo. Si te dice su \
+nombre, usalo. Ofrece ayuda con documentos de la institucion o dudas academicas.
+No menciones documentos, contexto ni como funcionas por dentro."""
+
+GENERAL_PROMPT = """Eres el asistente academico de la UNIAJC. El usuario pregunta \
+algo general sobre educacion o vida academica que no depende de esta institucion en \
+concreto.
+
+Responde en espanol con tu propio conocimiento, de forma breve y clara: dos o tres \
+frases bastan. Cierra avisando de que es informacion general y no proviene de los \
+documentos de la institucion.
+Si la pregunta necesitara un dato propio de la UNIAJC para responderse bien, dilo en \
+lugar de inventarlo."""
+
+# Sin LLM: el camino fuera de ambito no merece una generacion.
+OFF_TOPIC_MESSAGE = (
+    "Solo puedo ayudarte con los documentos de la institución y con temas académicos. "
+    "¿Quieres preguntarme algo sobre eso?"
+)
+
+
+def build_simple_prompt(question: str, system_prompt: str) -> str:
+    """Prompt sin contexto recuperado, para los caminos que no consultan la base."""
+    return f"{system_prompt}\n\nMensaje: {question}\n\nRespuesta:"
+
+
 def render_system_prompt(body: str) -> str:
     """Sustituye el marcador de fallback por la frase real del sistema.
 

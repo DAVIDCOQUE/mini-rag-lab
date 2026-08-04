@@ -20,10 +20,17 @@ class Retriever:
         self.qdrant_service = QdrantService()
         self.reranker = Reranker() if settings.RERANK_ENABLED else None
 
-    def search(self, query: str, limit: int = 5) -> Sequence[ScoredPoint]:
-        """Embebe la consulta y devuelve los chunks mas relevantes."""
+    def search(
+        self, query: str, limit: int = 5, vector: list[float] | None = None
+    ) -> Sequence[ScoredPoint]:
+        """Embebe la consulta y devuelve los chunks mas relevantes.
+
+        Con vector se reutiliza uno ya calculado (el router embebe la consulta antes
+        de decidir el camino) y se ahorra una llamada a Ollama.
+        """
         self.qdrant_service.ensure_collection()
-        vector = self.embedding_service.embed_query(query)
+        if vector is None:
+            vector = self.embedding_service.embed_query(query)
 
         if self.reranker is None:
             return self.qdrant_service.search(vector, limit)

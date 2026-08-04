@@ -3,11 +3,82 @@
 Laboratorio de aprendizaje para construir un sistema RAG paso a paso.
 
 El circuito completo **ya funciona**: subir un PDF, extraer su texto con PyMuPDF, trocearlo
-respetando frases, embeberlo con Ollama (`bge-m3`), guardarlo en Qdrant y recuperarlo con
-búsqueda semántica reordenada por un cross-encoder.
+respetando frases, embeberlo con Ollama (`bge-m3`), guardarlo en Qdrant, recuperarlo con
+búsqueda semántica reordenada por un cross-encoder y responder con el LLM sobre ese contexto.
 
-Quedan cuatro piezas como esqueleto para clases futuras: `rag/llm_service.py`,
-`rag/prompt_builder.py`, `documents/pdf_loader.py` y `documents/ocr.py`.
+Quedan dos piezas como esqueleto para clases futuras: `documents/pdf_loader.py` y
+`documents/ocr.py`.
+
+---
+
+## Cómo se comporta la app
+
+### Una consulta no siempre recorre el mismo camino
+
+Antes toda pregunta pagaba la recuperación completa, aunque fuera un saludo. Ahora un
+**router** clasifica primero y solo el camino institucional llega a Qdrant:
+
+```
+pregunta
+   │
+   ▼  embedding de la consulta (bge-m3)
+ ROUTER  ─ compara ese vector con los centroides de cada camino
+   │
+   ├─ institutional  → Qdrant + reranker → umbral → LLM con contexto
+   ├─ general        → LLM sin contexto, avisando de que es información general
+   ├─ smalltalk      → LLM sin contexto, respuesta breve y cordial
+   └─ off_topic      → texto fijo, sin llamar al modelo
+```
+
+El router **no usa un LLM**: compara el vector de la consulta con el promedio de unas frases
+de ejemplo por camino (`rag/query_router.py`, `ROUTE_EXAMPLES`). La gracia es que ese vector
+es el mismo que después necesita Qdrant, así que en el camino institucional el router no
+añade ni una llamada: lo que se ahorra en los demás caminos es el **reranker**.
+
+Tiempos medidos en caliente, en una máquina sin GPU (varían mucho con el hardware):
+
+| Consulta | Camino | Coste |
+|---|---|---|
+| `Hola, soy David` | smalltalk | ~7 s |
+| `¿Cuál es la mejor receta de paella?` | off_topic | ~2,5 s (sin LLM) |
+| `¿Qué es un crédito académico?` | general | ~10 s |
+| `¿Quién es el secretario general?` | institutional | ~18,6 s |
+
+En esta máquina **la recuperación domina el gasto**, no la generación: el cross-encoder
+reordenando 20 candidatos en CPU es el grueso de esos 18 s.
+
+Ante la duda el router prefiere buscar (`ROUTER_SAFETY_MARGIN`): responder de memoria sobre
+la institución es el peor fallo posible, porque el modelo inventa con seguridad. Se corrige
+añadiendo frases al camino que corresponda; con `ROUTER_ENABLED=false` se vuelve al
+comportamiento anterior de recuperar siempre.
+
+### Cuando sí se busca, hay un corte de calidad
+
+Recuperar no es responder. Si el mejor chunk no llega a `CHAT_MIN_SCORE`, no se llama al
+modelo: se devuelve la frase de "no encontré información" sin gastar la generación. Con el
+reranker activo esos scores son **logits del cross-encoder** (sin techo y con negativos), no
+una similitud de 0 a 1; por eso la interfaz muestra el valor crudo (`-0.68`) y no un
+porcentaje.
+
+### El comportamiento del agente se edita sin tocar código
+
+El prompt de sistema por defecto vive en `rag/prompt_builder.py`, versionado en git. Desde la
+vista **Prompts** se crean variantes que se guardan en la tabla `prompt_templates` y se
+identifican por un `code`:
+
+- Sin variante activa —o al borrar la activa— el sistema cae al prompt del repositorio.
+  Nunca hay un estado sin prompt.
+- Las variantes escriben `{no_answer}` en lugar de copiar la frase de fallback; se sustituye
+  al construir el prompt, de modo que cambiarla en el código actualiza todas las variantes.
+- El **chat** usa la variante activa. **Explore** permite elegir otra para una consulta
+  suelta, sin tocar la que el sistema tiene en uso.
+
+### Explore enseña el flujo, no solo el resultado
+
+La vista de búsqueda muestra, para cada consulta: el camino que eligió el router, la
+respuesta generada, el coste de cada etapa por separado (enrutado / recuperación /
+generación) y los chunks que se usaron como contexto, con su score real. Si el modelo no
+llegó a llamarse, lo dice y explica por qué.
 
 ---
 
@@ -83,8 +154,19 @@ servicio está caído, así que cada campo es `connected` o `disconnected`:
 | `POST` | `/api/documents/{id}/process` | Extrae el texto del PDF y lo trocea |
 | `POST` | `/api/documents/{id}/index` | Embebe los chunks y los guarda en Qdrant |
 | `GET` | `/api/documents/{id}/chunks` | Devuelve los chunks ya indexados |
-| `POST` | `/api/search` | Búsqueda semántica con reranking |
-| `POST` | `/api/chat` | Reenvía el mensaje a Ollama |
+| `POST` | `/api/search` | Búsqueda semántica con reranking; con `generate` hace el flujo RAG completo |
+| `POST` | `/api/chat` | RAG conversacional: enruta, recupera si hace falta y responde |
+| `GET` | `/api/prompts` | Lista las variantes de prompt guardadas |
+| `GET` | `/api/prompts/default` | Prompt del repositorio (solo lectura, de referencia) |
+| `POST` | `/api/prompts` | Crea una variante |
+| `PATCH` | `/api/prompts/{code}` | Edita nombre o instrucciones (el `code` no cambia) |
+| `DELETE` | `/api/prompts/{code}` | Borra una variante |
+| `POST` | `/api/prompts/{code}/activate` | Deja esa variante como la que usa el chat |
+| `POST` | `/api/prompts/default/activate` | Vuelve al prompt del repositorio |
+
+`POST /api/search` acepta `generate` (pasar los chunks por el LLM) y `prompt_code` (con qué
+instrucciones generar). Cuando `generate` es `true` devuelve además `answer`, el `route` que
+eligió el router y `timings` con el coste de cada etapa por separado.
 
 ---
 
@@ -146,6 +228,10 @@ cd backend
 alembic upgrade head
 ```
 
+Dos tablas: `documents` (metadatos de cada PDF) y `prompt_templates` (las variantes de prompt
+creadas desde la UI). Tras un `git pull` conviene repetir el `upgrade head`: la migración
+`0002` crea la segunda.
+
 > El backend usa SQLAlchemy con el driver `psycopg2`, así que el motor debe ser PostgreSQL;
 > lo abierto es *dónde* corre, no *qué* motor es.
 
@@ -158,16 +244,27 @@ alembic upgrade head
 # 2. Iniciar el servicio
 ollama serve
 
-# 3. Descargar los dos modelos que usa el backend
-ollama pull bge-m3        # embeddings (1024 dimensiones)
-ollama pull qwen2.5:7b    # chat
+# 3. Descargar los modelos que usa el backend
+ollama pull bge-m3            # embeddings (1024 dimensiones) — acordado, no cambiar a la ligera
+ollama pull <modelo-de-chat>  # el que prefieras: llama3.1:8b, qwen2.5:7b…
 ```
 
 - API: http://localhost:11434
 
-Los nombres salen de `EMBEDDING_MODEL` y `LLM_MODEL` en `backend/.env`. Si cambias el modelo
-de embeddings, ajusta también `EMBEDDING_DIM` y vuelve a indexar: la colección de Qdrant se
-crea con esa dimensión y no acepta vectores de otro tamaño.
+Los nombres salen de `EMBEDDING_MODEL` y `LLM_MODEL` en `backend/.env`.
+
+**El modelo de chat es decisión de cada máquina**: cada quien corre el que tenga descargado,
+así que aquí no se fija ninguno. Para ver el activo, `ollama list` o:
+
+```bash
+cd backend && python -c "from app.core.config import settings; print(settings.LLM_MODEL)"
+```
+
+> Pedirle a Ollama un modelo que no está descargado devuelve **404**, no un error legible.
+
+El modelo de **embeddings** sí es común a todos: si lo cambias, ajusta `EMBEDDING_DIM` y
+vuelve a indexar, porque la colección de Qdrant se crea con esa dimensión y no acepta
+vectores de otro tamaño.
 
 El reranking va aparte: usa un cross-encoder vía FastEmbed
 (`jinaai/jina-reranker-v2-base-multilingual`), que se descarga solo la primera vez y **no**
@@ -181,13 +278,14 @@ pasa por Ollama. Se apaga con `RERANK_ENABLED=false`.
 mini-rag-lab/
 ├── backend/                     FastAPI
 │   ├── app/
-│   │   ├── api/routes/          Endpoints HTTP (health, chat, search, documents)
+│   │   ├── api/routes/          Endpoints HTTP (health, chat, search, documents, prompts)
 │   │   ├── core/                Configuración (Pydantic Settings) y logging
 │   │   ├── database/            Engine, sesión y Base declarativa
 │   │   ├── models/              Modelos ORM (SQLAlchemy)
 │   │   ├── schemas/             DTOs (Pydantic)
 │   │   ├── repositories/        Acceso a datos
 │   │   ├── services/            Lógica de negocio
+│   │   │   └── rag_service.py        orquesta el flujo: router → camino → respuesta
 │   │   ├── rag/                 Módulo RAG
 │   │   │   ├── chunker.py            trocea por página respetando frases
 │   │   │   ├── embedding_service.py  embeddings vía Ollama /api/embed
@@ -195,8 +293,9 @@ mini-rag-lab/
 │   │   │   ├── indexer.py            chunks → embeddings → Qdrant
 │   │   │   ├── retriever.py          recupera candidatos y reordena
 │   │   │   ├── reranker.py           cross-encoder vía FastEmbed
-│   │   │   ├── llm_service.py        (esqueleto)
-│   │   │   └── prompt_builder.py     (esqueleto)
+│   │   │   ├── query_router.py       elige camino comparando con centroides
+│   │   │   ├── llm_service.py        genera con Ollama /api/generate
+│   │   │   └── prompt_builder.py     prompt por defecto y prompts de cada camino
 │   │   ├── documents/           Carga/parseo de documentos
 │   │   │   ├── pdf_parser.py         extrae texto con PyMuPDF, por página
 │   │   │   ├── pdf_loader.py         (esqueleto)
@@ -210,8 +309,8 @@ mini-rag-lab/
 ├── frontend/                    Angular 20
 │   ├── src/app/
 │   │   ├── core/                Modelos y servicios HTTP (health, chat, search,
-│   │   │                        documents, preferencias de UI)
-│   │   ├── features/            Vistas (home, chat, documents, search)
+│   │   │                        documents, prompts, preferencias de UI)
+│   │   ├── features/            Vistas (home, chat, documents, search, prompts)
 │   │   ├── layout/              Layout principal
 │   │   └── shared/              Componentes/pipes/directivas compartidos
 │   ├── src/environments/        apiUrl por entorno

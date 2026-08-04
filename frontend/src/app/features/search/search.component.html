@@ -94,7 +94,7 @@
       </div>
     }
 
-    @if (searched() && results().length === 0 && !loading()) {
+    @if (searched() && results().length === 0 && !loading() && searchedCorpus()) {
       <div class="empty-state results__empty surface">
         <mat-icon>search_off</mat-icon>
         <p>{{ copy().noResults }}</p>
@@ -115,11 +115,21 @@
 
           @if (timings(); as t) {
             <div class="timings">
-              <span class="timing">
-                <mat-icon>travel_explore</mat-icon>
-                {{ copy().retrievalTime }}
-                <b>{{ formatDuration(t.retrieval_ms) }}</b>
-              </span>
+              @if (t.routing_ms !== null) {
+                <span class="timing">
+                  <mat-icon>alt_route</mat-icon>
+                  {{ copy().routingTime }}
+                  <b>{{ formatDuration(t.routing_ms) }}</b>
+                </span>
+              }
+
+              @if (t.retrieval_ms !== null) {
+                <span class="timing">
+                  <mat-icon>travel_explore</mat-icon>
+                  {{ copy().retrievalTime }}
+                  <b>{{ formatDuration(t.retrieval_ms) }}</b>
+                </span>
+              }
 
               @if (t.generation_ms !== null) {
                 <span class="timing">
@@ -138,6 +148,14 @@
           }
         </header>
 
+        <!-- El camino explica por que hay o no hay chunks debajo. -->
+        @if (route(); as taken) {
+          <span class="route" [class]="'route--' + taken">
+            <mat-icon>alt_route</mat-icon>
+            {{ copy().routes[taken] }}
+          </span>
+        }
+
         <p class="answer__body">{{ text }}</p>
 
         <!-- Sin llamada al modelo el dato importante es por que no la hubo. -->
@@ -149,7 +167,9 @@
         }
       </article>
 
-      <span class="eyebrow context-label">{{ copy().contextLabel }}</span>
+      @if (results().length > 0) {
+        <span class="eyebrow context-label">{{ copy().contextLabel }}</span>
+      }
     }
 
     @for (item of results(); track item.document_id + '-' + item.chunk_index; let i = $index) {

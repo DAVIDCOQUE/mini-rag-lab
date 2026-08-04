@@ -1,5 +1,4 @@
 import logging
-import time
 import uuid
 from collections.abc import Sequence
 
@@ -7,33 +6,34 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from qdrant_client.models import ScoredPoint
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.database.session import get_db
 from app.rag.embedding_service import EmbeddingError
-from app.rag.llm_service import LLMError, generate
-from app.rag.prompt_builder import NO_ANSWER_MESSAGE, build_prompt
-from app.rag.retriever import Retriever
+from app.rag.llm_service import LLMError
 from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
-from app.services import prompt_service
+from app.services import rag_service
 from app.services.document_service import DocumentNotFoundError, get_document
 
 logger = logging.getLogger("mini_rag_lab")
 
 router = APIRouter(tags=["chat"])
-retriever = Retriever()
 
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
-    """RAG conversacional: recupera contexto relevante y genera una respuesta con el LLM."""
+    """RAG conversacional. El router decide si la pregunta necesita el corpus o no."""
     logger.info("Pregunta recibida: %s", request.message)
 
     try:
-        points = retriever.search(request.message, settings.CHAT_TOP_K)
+        outcome = rag_service.answer_question(db, request.message)
     except EmbeddingError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="No fue posible generar el embedding de la consulta (¿Ollama activo?).",
+        )
+    except LLMError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No fue posible conectar con Ollama.",
         )
     except Exception:
         raise HTTPException(
@@ -41,46 +41,13 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             detail="No fue posible realizar la búsqueda (¿Qdrant activo?).",
         )
 
-    # Corte previo al LLM: si no hay suficientes chunks o el mejor no es lo bastante
-    # relevante, no tiene sentido gastar una llamada al modelo (y se evita que
-    # alucine sobre contexto irrelevante). Ver comentario de CHAT_MIN_SCORE en config.
-    if len(points) < settings.CHAT_MIN_RESULTS or points[0].score < settings.CHAT_MIN_SCORE:
-        logger.info(
-            "Contexto insuficiente para '%s' (chunks=%d, top_score=%s); no se llama al LLM.",
-            request.message,
-            len(points),
-            points[0].score if points else None,
-        )
-        return ChatResponse(question=request.message, answer=NO_ANSWER_MESSAGE, sources=[])
-
-    chunks = [point.payload["content"] for point in points]
-    # El chat no elige prompt: usa la variante activa del mantenedor y, si no hay
-    # ninguna, el prompt del repositorio.
-    system_prompt, prompt_code = prompt_service.resolve_prompt(db)
-    prompt = build_prompt(request.message, chunks, system_prompt)
-
-    start = time.perf_counter()
-    try:
-        answer = generate(prompt)
-    except LLMError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No fue posible conectar con Ollama.",
-        )
-    elapsed = time.perf_counter() - start
-    logger.info(
-        "Respuesta del modelo '%s' con el prompt '%s' en %.2fs",
-        settings.LLM_MODEL,
-        prompt_code,
-        elapsed,
-    )
-
+    # Solo el camino institucional tiene fuentes que citar.
     sources = [
         ChatSource(filename=filename, score=point.score, chunk=point.payload["content"])
-        for point, filename in zip(points, _resolve_filenames(db, points))
+        for point, filename in zip(outcome.points, _resolve_filenames(db, outcome.points))
     ]
 
-    return ChatResponse(question=request.message, answer=answer, sources=sources)
+    return ChatResponse(question=request.message, answer=outcome.answer, sources=sources)
 
 
 def _resolve_filenames(db: Session, points: Sequence[ScoredPoint]) -> list[str]:
