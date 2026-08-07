@@ -189,10 +189,157 @@ Implementado:
 - Validación del contexto antes del LLM.
 - Respuesta con evidencia (`sources`).
 - Mejoras en la interfaz del chat.
+- OCR para PDFs escaneados (ver sección siguiente).
 
 Pendiente:
 
 - Memoria conversacional.
 - Streaming de respuestas.
-- OCR para PDFs escaneados.
 - Citas automáticas dentro de la respuesta.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------------------
+
+## OCR para PDFs escaneados
+
+Se agregó soporte para OCR automático en la etapa de extracción de texto del PDF. El
+objetivo es que el laboratorio también pueda procesar PDFs escaneados o documentos
+compuestos por imágenes con texto, sin tocar el resto del flujo RAG (chunker, embeddings,
+Qdrant, retriever, reranker, chat).
+
+Flujo implementado:
+
+```
+PDF
+ │
+ ▼
+PyMuPDF: page.get_text()
+ │
+ ▼
+¿La página trae texto?
+ │
+ ├─ Sí ──────────────────────────► usar ese texto
+ │
+ └─ No ──► renderizar la página a imagen ──► EasyOCR ──► texto detectado
+                                                              │
+                                                              ▼
+                                                texto de la página (igual en ambos casos)
+                                                              │
+                                                              ▼
+                                          Chunking → Embeddings → Qdrant (sin cambios)
+```
+
+### Servicio OCR
+
+Se implementó un módulo independiente, `documents/ocr.py`, encargado exclusivamente del
+reconocimiento óptico de caracteres.
+
+Responsabilidades:
+
+- Recibir una imagen ya renderizada de una página del PDF.
+- Ejecutar EasyOCR (`Reader`, cargado de forma perezosa la primera vez que se usa).
+- Devolver el texto detectado como una cadena.
+
+El módulo OCR no sabe nada de PDFs, chunking, embeddings ni Qdrant: solo transforma una
+imagen en texto.
+
+---
+
+### Integración con el parser de PDF
+
+Se modificó `documents/pdf_parser.py` para decidir, página por página, cuándo usar OCR:
+
+1. Intentar extraer texto con `page.get_text()`.
+2. Si el texto no está vacío, usarlo tal cual (comportamiento sin cambios).
+3. Si está vacío, renderizar únicamente esa página a imagen y pasarla al servicio OCR.
+4. El texto resultante (de PyMuPDF o de OCR) sigue el mismo formato que antes.
+
+`extract_pages()` mantiene exactamente la misma firma y el mismo contrato de salida
+(`list[str]`, un elemento por página), así que el resto del pipeline no necesitó cambios.
+
+---
+
+### Optimización
+
+El OCR solo se ejecuta en páginas sin texto: las páginas con texto seleccionable nunca
+pasan por EasyOCR. Esto evita procesar de más un PDF mixto (por ejemplo, un anexo
+escaneado dentro de un documento digital).
+
+---
+
+### Manejo de errores
+
+Si EasyOCR falla al procesar una página (imagen corrupta, error del modelo, etc.), la
+excepción se captura, se registra en el log y esa página queda con texto vacío. El resto
+del documento sigue procesándose con normalidad: un fallo puntual de OCR no detiene la
+indexación completa.
+
+---
+
+### Compatibilidad
+
+Con esta mejora el laboratorio puede indexar:
+
+- PDFs digitales con texto seleccionable (comportamiento sin cambios).
+- Documentos escaneados.
+- Fotografías de documentos convertidas a PDF.
+- Capturas de pantalla o folletos con texto incrustado en una imagen.
+
+No se añadió interpretación semántica de gráficos, diagramas o fotografías: solo se
+extrae el texto presente en la imagen.
+
+---
+
+### Archivos agregados o modificados
+
+| Archivo | Función |
+|---|---|
+| `documents/ocr.py` | Nuevo. Reconocimiento óptico de caracteres mediante EasyOCR. |
+| `documents/pdf_parser.py` | Decide por página cuándo usar OCR; `extract_pages()` conserva el mismo contrato de salida. |
+| `requirements.txt` | Se agregó la dependencia `easyocr`. |
+
+> `documents/indexer.py` **no se modificó**. No necesita saber si el texto de una página
+> vino de PyMuPDF o de OCR, así que no había nada que cambiarle ahí.
+
+---
+
+### Nota de entorno
+
+La primera vez que se ejecuta el OCR, EasyOCR descarga sus modelos de detección y
+reconocimiento (una sola vez; quedan cacheados localmente). Esa descarga puede tardar
+varios minutos según la conexión.
+
+---
+
+## Estado actual (OCR)
+
+Implementado:
+
+- OCR automático para páginas sin texto.
+- Integración transparente con el parser de PDF (mismo contrato de `extract_pages`).
+- Compatibilidad con documentos escaneados o con páginas mixtas.
+- Manejo de errores por página sin detener la indexación completa.
+
+Pendiente:
+
+- Interpretación de gráficos y diagramas.
+- Soporte para modelos de visión (Vision-Language Models).
+- Extracción automática de tablas complejas.
+- Generación de descripciones de imágenes mediante IA.
