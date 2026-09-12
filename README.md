@@ -6,8 +6,9 @@ El circuito completo **ya funciona**: subir un PDF, extraer su texto con PyMuPDF
 respetando frases, embeberlo con Ollama (`bge-m3`), guardarlo en Qdrant, recuperarlo con
 búsqueda semántica reordenada por un cross-encoder y responder con el LLM sobre ese contexto.
 
-Quedan dos piezas como esqueleto para clases futuras: `documents/pdf_loader.py` y
-`documents/ocr.py`.
+Las páginas escaneadas, sin capa de texto, se resuelven con OCR (EasyOCR) en lugar de
+quedarse vacías. Queda una pieza como esqueleto para clases futuras:
+`documents/pdf_loader.py`.
 
 ---
 
@@ -92,6 +93,37 @@ llegó a llamarse, lo dice y explica por qué.
 | PostgreSQL | 16 — necesario, guarda los documentos |
 | Qdrant | se descarga con `scripts\setup-qdrant.ps1` |
 | Ollama | necesario, sirve los embeddings y el chat |
+
+---
+
+## Cómo levantarlo todo con Docker
+
+Alternativa a instalar PostgreSQL, Qdrant y las dependencias de Python a mano. Levanta
+PostgreSQL, Qdrant, el backend y el frontend. **Ollama se queda fuera**, corriendo en la
+máquina anfitriona, para no duplicar varios GB de modelos ya descargados dentro de un volumen.
+
+```bash
+copy .env.example .env        # ajustar LLM_MODEL al modelo que se tenga descargado
+docker compose up --build
+```
+
+- App: http://localhost:4200
+- API: http://localhost:8000
+- Panel de Qdrant: http://localhost:6333/dashboard
+
+Nginx sirve el frontend y reenvía `/api` y `/health` al backend, así que todo queda en el
+mismo origen y no hay CORS que configurar. Las migraciones de Alembic se aplican solas al
+arrancar el contenedor, y los modelos del reranker y del OCR viajan dentro de la imagen:
+la primera construcción tarda y pesa (~2 GB), pero el arranque no depende de la red.
+
+Dos condiciones de la máquina anfitriona, que son la causa habitual de que no funcione:
+
+1. **Virtualización activada en el firmware** — `SVM Mode` en AMD, `VT-x` en Intel. Sin
+   ella WSL2 no arranca y Docker Desktop no levanta su motor, aunque `docker --version`
+   responda con normalidad.
+2. **Ollama escuchando fuera de loopback** — por defecto solo atiende en `127.0.0.1` y el
+   contenedor no lo alcanza. Hay que arrancarlo con `OLLAMA_HOST=0.0.0.0`, teniendo en
+   cuenta que eso lo expone al resto de la red local.
 
 ---
 
@@ -272,6 +304,35 @@ pasa por Ollama. Se apaga con `RERANK_ENABLED=false`.
 
 ---
 
+## Tests y evaluación
+
+Los tests unitarios no necesitan ningún servicio levantado:
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+Cubren la lógica propia del proyecto: el troceado y la limpieza de encabezados repetidos
+(`chunker`), la sustitución de `{no_answer}` (`prompt_builder`), el margen de seguridad del
+router (`query_router`) y el camino de OCR del `pdf_parser` —incluido el caso en que la
+dependencia no está instalada, que llegó a pasar desapercibido en producción—.
+
+La **calidad de la recuperación** se mide aparte, y eso sí exige Qdrant y Ollama corriendo
+con los documentos ya indexados:
+
+```bash
+cd backend
+python -m evaluation.evaluate
+```
+
+Recorre el golden set de `evaluation/questions.json` e informa `recall@1/3/5` y MRR. Es lo
+que hay que mirar antes y después de tocar el chunking, el modelo de embeddings o el
+reranker: son los cambios que mejoran una consulta y empeoran otras cinco sin avisar.
+
+---
+
 ## Estructura del proyecto
 
 ```
@@ -299,12 +360,16 @@ mini-rag-lab/
 │   │   ├── documents/           Carga/parseo de documentos
 │   │   │   ├── pdf_parser.py         extrae texto con PyMuPDF, por página
 │   │   │   ├── pdf_loader.py         (esqueleto)
-│   │   │   └── ocr.py                (esqueleto)
+│   │   │   └── ocr.py                OCR de páginas escaneadas (EasyOCR)
 │   │   ├── utils/               Utilidades
 │   │   └── main.py              Punto de entrada FastAPI + logging middleware
 │   ├── alembic/                 Migraciones
+│   ├── evaluation/              Golden set y métricas de recuperación
+│   ├── tests/                   Tests unitarios (pytest)
 │   ├── .env.example             Plantilla de variables de entorno
-│   └── requirements.txt
+│   ├── Dockerfile               Imagen del backend
+│   ├── requirements.txt         Dependencias de la app
+│   └── requirements-dev.txt     Dependencias solo de desarrollo
 │
 ├── frontend/                    Angular 20
 │   ├── src/app/
@@ -314,7 +379,10 @@ mini-rag-lab/
 │   │   ├── layout/              Layout principal
 │   │   └── shared/              Componentes/pipes/directivas compartidos
 │   ├── src/environments/        apiUrl por entorno
+│   ├── nginx.conf               Sirve la SPA y proxya /api en el contenedor
 │   └── proxy.conf.json          Proxy dev → FastAPI
+│
+├── docker-compose.yml           Postgres, Qdrant, backend y frontend en contenedores
 │
 ├── scripts/
 │   └── setup-qdrant.ps1         Descarga el binario de Qdrant + dashboard

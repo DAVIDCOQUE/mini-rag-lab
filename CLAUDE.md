@@ -35,12 +35,15 @@ descargado devuelve **404**, no un error legible.
 
 ## Estado del código
 
-Implementado: `chunker`, `pdf_parser` (PyMuPDF), `embedding_service` (Ollama `/api/embed`),
-`qdrant_service`, `indexer`, `retriever`, `reranker`, `llm_service`, `prompt_builder`,
-y las rutas `health`, `chat`, `search`, `documents`, `prompts`.
+Implementado: `chunker`, `pdf_parser` (PyMuPDF), `ocr` (EasyOCR, solo en páginas sin capa
+de texto), `embedding_service` (Ollama `/api/embed`), `qdrant_service`, `indexer`,
+`retriever`, `reranker`, `llm_service`, `prompt_builder`, y las rutas `health`, `chat`,
+`search`, `documents`, `prompts`.
 
-Esqueleto pendiente — no tratarlos como código roto: `documents/pdf_loader.py`,
-`documents/ocr.py`.
+Esqueleto pendiente — no tratarlo como código roto: `documents/pdf_loader.py`.
+
+El OCR se precarga en el `lifespan`: sus modelos son ~100 MB que se descargan la primera
+vez, y pagarlo en el arranque evita que el primer PDF escaneado se procese vacío.
 
 ## Prompts del sistema
 
@@ -95,9 +98,16 @@ skills gasta tokens de extracción semántica e inventa comunidades ajenas al pr
 uvicorn app.main:app --reload --no-access-log
 alembic upgrade head          # tras un pull: la 0002 crea prompt_templates
 
+# tests (desde backend/)
+pytest                          # unitarios, sin servicios levantados
+python -m evaluation.evaluate   # recall@k y MRR; exige Qdrant, Ollama y documentos indexados
+
 # frontend (desde frontend/)
 npm start
 
 # qdrant (desde la raíz, una sola vez)
 .\scripts\setup-qdrant.ps1
+
+# alternativa: todo en contenedores (desde la raíz), con Ollama en el host
+docker compose up --build
 ```
