@@ -16,9 +16,11 @@ class Chunker:
 
     def __init__(self, chunk_size: int | None = None, chunk_overlap: int | None = None) -> None:
         # Los tamanos salen de la config; los parametros permiten sobreescribirlos en pruebas.
+        # Se compara contra None y no por verdad: un solape de 0 es un valor valido que
+        # con `or` se confundiria con "no indicado".
         self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size or settings.CHUNK_SIZE,
-            chunk_overlap=chunk_overlap or settings.CHUNK_OVERLAP,
+            chunk_size=chunk_size if chunk_size is not None else settings.CHUNK_SIZE,
+            chunk_overlap=chunk_overlap if chunk_overlap is not None else settings.CHUNK_OVERLAP,
             separators=SEPARATORS,
             keep_separator="end",
         )
