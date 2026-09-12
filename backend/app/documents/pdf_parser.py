@@ -49,6 +49,15 @@ class PdfParser:
                 pixmap.height, pixmap.width, pixmap.n
             )
             return self.ocr.image_to_text(image)
+        except ImportError as exc:
+            # Instalacion incompleta, no una pagina ilegible: sin distinguirlo, un
+            # requirements.txt sin aplicar se confunde con un escaneo de mala calidad.
+            logger.error(
+                "OCR no disponible (%s): la pagina %d queda sin texto.", exc, page.number + 1
+            )
+            return ""
         except Exception as exc:
-            logger.warning("OCR fallo en la pagina %d: %s", page.number + 1, exc)
+            logger.error(
+                "OCR fallo en la pagina %d (%s): su contenido se pierde.", page.number + 1, exc
+            )
             return ""

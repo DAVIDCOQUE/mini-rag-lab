@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.documents import ocr
 from app.services import rag_service
 
 configure_logging()
@@ -20,6 +21,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Cargar los modelos al arrancar y no en la primera consulta: el coste se paga
     # durante el despliegue, no en la cara del primer usuario.
     rag_service.warm_up()
+    ocr.warm_up()
     yield
 
 
