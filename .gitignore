@@ -25,6 +25,11 @@ qdrant-x86_64-pc-windows-msvc/storage/
 qdrant-x86_64-pc-windows-msvc/snapshots/
 qdrant-x86_64-pc-windows-msvc/static/
 
+# Qdrant arrancado desde la raiz del repo escribe aqui su base de datos (WAL y
+# vectores: binarios de 33 MB que git no sabe fusionar). Es estado local, no del proyecto.
+/storage/
+.qdrant-initialized
+
 # ---------- Grafo de conocimiento (graphify) ----------
 # Salida generada, se reconstruye con `graphify update .`
 graphify-out/
