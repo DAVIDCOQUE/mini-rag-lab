@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
-  // En produccion se apunta directo al backend (ajustar segun el despliegue real).
-  apiUrl: 'http://localhost:8000',
+  // Vacio = rutas relativas. Nginx sirve la SPA y reenvia /api y /health al backend,
+  // asi que todo queda en el mismo origen y no hay CORS que resolver.
+  apiUrl: '',
 };

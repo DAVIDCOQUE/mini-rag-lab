@@ -1,0 +1,8 @@
+# Lo que acaba dentro de un contenedor Linux tiene que conservar LF. Con CRLF el
+# shebang de un script falla con "bad interpreter: /bin/sh^M", y el repo se clona
+# con core.autocrlf=true en Windows.
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+.dockerignore   text eol=lf
+*.conf          text eol=lf
+docker-compose.yml text eol=lf
