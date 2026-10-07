@@ -24,7 +24,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     logger.info("Pregunta recibida: %s", request.message)
 
     try:
-        outcome = rag_service.answer_question(db, request.message)
+        outcome = rag_service.answer_question(db, request.message, history=request.history)
     except EmbeddingError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

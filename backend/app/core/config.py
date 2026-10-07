@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -40,6 +41,10 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "qwen2.5:7b"
     EMBEDDING_MODEL: str = "bge-m3"
     EMBEDDING_DIM: int = 1024
+    # Ventana de contexto del LLM. Sin fijarla, Ollama usa su valor por defecto (4096).
+    # Debe ser constante: si cambia entre peticiones, Ollama recarga el modelo. 16K cabe
+    # en una GPU de 12 GB junto a bge-m3; con 32K Ollama expulsa el de embeddings.
+    LLM_NUM_CTX: int = 16384
 
     # --- Reranking (cross-encoder via FastEmbed) ---
     RERANK_ENABLED: bool = True
@@ -56,6 +61,12 @@ class Settings(BaseSettings):
     # RERANK_ENABLED este umbral deja de tener sentido (la escala cambia a similitud
     # coseno) y deberia ajustarse o dejar el filtro inefectivo a proposito.
     CHAT_MIN_SCORE: float = -1.5
+    # Tokens maximos de historial que viajan al LLM. Lo que cuesta tiempo es lo enviado
+    # (~1900 tokens/s de lectura en una RTX 3060), no el tamano de la ventana.
+    CHAT_HISTORY_MAX_TOKENS: int = 6000
+    # Las respuestas previas del asistente se recortan a este largo dentro del historial:
+    # son lo que mas pesa y su detalle ya no hace falta para seguir el hilo.
+    CHAT_HISTORY_ANSWER_CHARS: int = 600
 
     # --- Router de consultas ---
     # Clasifica la consulta antes de recuperar: solo el camino institucional pasa por
@@ -65,6 +76,14 @@ class Settings(BaseSettings):
     # Al alza el sistema busca mas (mas lento, mas seguro); a la baja responde mas de
     # memoria (mas rapido, mas riesgo de inventar sobre la institucion).
     ROUTER_SAFETY_MARGIN: float = 0.04
+    # "llm": el modelo de chat lee la conversacion, elige camino y reescribe los
+    # seguimientos (~1 s en GPU). "embedding": comparacion con frases de ejemplo, sin
+    # LLM; es tambien el respaldo si el LLM falla o tarda mas de ROUTER_LLM_TIMEOUT_S.
+    ROUTER_MODE: Literal["llm", "embedding"] = "llm"
+    ROUTER_LLM_TIMEOUT_S: float = 20.0
+    # Cuanto tiene que ganar off_topic al segundo camino. Es el unico que responde sin
+    # modelo, asi que ante la duda se cede al otro.
+    ROUTER_OFF_TOPIC_MARGIN: float = 0.03
 
     # --- Almacenamiento de documentos ---
     STORAGE_DIR: str = "storage"

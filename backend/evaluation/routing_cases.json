@@ -1,0 +1,77 @@
+{
+  "histories": {
+    "presentacion": [
+      {"role": "user", "content": "Hola, soy David y estudio ingeniería de sistemas"},
+      {"role": "assistant", "content": "¡Hola David! Soy Sara, la asistente académica de la UNIAJC. ¿En qué te puedo ayudar?"}
+    ],
+    "matricula": [
+      {"role": "user", "content": "Hola, soy David"},
+      {"role": "assistant", "content": "¡Hola David! Soy Sara. ¿En qué te puedo ayudar?"},
+      {"role": "user", "content": "¿Cuál es el procedimiento para la matrícula?"},
+      {"role": "assistant", "content": "La matrícula se hace en línea por el portal institucional: revisas tu estado financiero, eliges las asignaturas y confirmas el horario."}
+    ],
+    "bienestar": [
+      {"role": "user", "content": "¿Qué dice la política de bienestar institucional?"},
+      {"role": "assistant", "content": "La política de bienestar busca el desarrollo integral de la comunidad universitaria con programas de salud, deporte, cultura y acompañamiento."}
+    ]
+  },
+  "cases": [
+    {"message": "¿Quién es el secretario general?", "expected": "institutional"},
+    {"message": "¿Quién preside el Consejo Directivo?", "expected": "institutional"},
+    {"message": "¿Qué porcentaje del presupuesto se destina a bienestar?", "expected": "institutional"},
+    {"message": "¿Qué dice la política de bienestar institucional?", "expected": "institutional"},
+    {"message": "¿Cuándo se aprobó el acuerdo 008?", "expected": "institutional"},
+    {"message": "¿Dónde queda la biblioteca?", "expected": "institutional"},
+    {"message": "¿A qué hora abre registro académico?", "expected": "institutional"},
+    {"message": "¿Cómo saco un certificado de notas?", "expected": "institutional"},
+    {"message": "¿Cuánto cuesta la matrícula?", "expected": "institutional"},
+    {"message": "¿Qué becas ofrece la universidad?", "expected": "institutional"},
+    {"message": "¿Cuáles son los requisitos de grado?", "expected": "institutional"},
+    {"message": "¿Hay atención psicológica para estudiantes?", "expected": "institutional"},
+    {"message": "Necesito el carné estudiantil, ¿qué hago?", "expected": "institutional"},
+    {"message": "¿Quién es el rector de la UNIAJC?", "expected": "institutional"},
+    {"message": "¿Cuándo empiezan las clases este semestre?", "expected": "institutional"},
+    {"message": "hola buen dia me gustaria saber de que forma puedo perder una asignatura", "expected": "institutional"},
+    {"message": "¿Cómo se pierde una materia?", "expected": "institutional"},
+    {"message": "¿Con cuántas fallas pierdo un curso?", "expected": "institutional"},
+    {"message": "¿Qué nota necesito para aprobar?", "expected": "institutional"},
+    {"message": "¿Puedo habilitar si saqué menos de tres?", "expected": "institutional"},
+    {"message": "¿Cómo cancelo el semestre?", "expected": "institutional"},
+
+    {"message": "¿Qué es un crédito académico?", "expected": "general"},
+    {"message": "¿Cómo estudio mejor para un parcial?", "expected": "general"},
+    {"message": "¿Qué diferencia hay entre pregrado y posgrado?", "expected": "general"},
+    {"message": "¿Qué es una monografía?", "expected": "general"},
+    {"message": "¿Cómo hago una bibliografía en normas APA?", "expected": "general"},
+    {"message": "¿Qué es una tesis?", "expected": "general"},
+    {"message": "¿Cómo organizo mi tiempo para estudiar?", "expected": "general"},
+
+    {"message": "Hola", "expected": "smalltalk"},
+    {"message": "Buenos días", "expected": "smalltalk"},
+    {"message": "Hola, soy David", "expected": "smalltalk"},
+    {"message": "Gracias", "expected": "smalltalk"},
+    {"message": "Chao, que estés bien", "expected": "smalltalk"},
+    {"message": "¿Cómo estás?", "expected": "smalltalk"},
+    {"message": "¿Quién eres?", "expected": "smalltalk"},
+    {"message": "¿Cómo me llamo?", "history": "presentacion", "expected": "smalltalk"},
+    {"message": "¿Qué estudio yo?", "history": "presentacion", "expected": "smalltalk"},
+    {"message": "¿Qué te pregunté antes?", "history": "matricula", "expected": "smalltalk"},
+    {"message": "Muchas gracias, eso era todo", "history": "matricula", "expected": "smalltalk"},
+
+    {"message": "¿Cuál es la mejor receta de paella?", "expected": "off_topic"},
+    {"message": "¿Quién ganó el partido de anoche?", "expected": "off_topic"},
+    {"message": "Recomiéndame una película", "expected": "off_topic"},
+    {"message": "¿Qué opinas de la política del país?", "expected": "off_topic"},
+    {"message": "Escríbeme código en Python para un juego", "expected": "off_topic"},
+    {"message": "¿Dónde compro un celular barato?", "expected": "off_topic"},
+    {"message": "¿Cuál es la capital de Francia?", "expected": "off_topic"},
+
+    {"message": "¿Y cuánto cuesta?", "history": "matricula", "expected": "institutional"},
+    {"message": "¿Y eso dónde lo hago?", "history": "matricula", "expected": "institutional"},
+    {"message": "¿Hasta cuándo hay plazo?", "history": "matricula", "expected": "institutional"},
+    {"message": "¿Y quién la aprobó?", "history": "bienestar", "expected": "institutional"},
+    {"message": "¿Qué porcentaje del presupuesto le dan?", "history": "bienestar", "expected": "institutional"},
+    {"message": "¿Quién es el secretario general?", "history": "presentacion", "expected": "institutional"},
+    {"message": "¿Qué es un crédito académico?", "history": "presentacion", "expected": "general"}
+  ]
+}

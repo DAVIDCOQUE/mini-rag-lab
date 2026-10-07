@@ -1,3 +1,7 @@
+from collections.abc import Sequence
+
+from app.schemas.chat import ChatTurn
+
 NO_ANSWER_MESSAGE = "No encontré información suficiente en los documentos para responder esa pregunta."
 
 # Marcador que las variantes de prompt pueden usar para referirse a la frase de
@@ -36,21 +40,24 @@ directamente y sin frases introductorias sobre el origen de la información."""
 # Prompts de los caminos que no pasan por la base vectorial. Son cortos a proposito:
 # el router ya decidio de que va el mensaje, asi que cada uno resuelve un solo caso en
 # lugar de llevar dentro el arbol de decisiones completo.
-SMALLTALK_PROMPT = """Eres el asistente academico de la UNIAJC. El usuario te ha \
-saludado, se ha presentado o te ha dado las gracias.
+SMALLTALK_PROMPT = """Eres el asistente academico de la universidad. El usuario te ha \
+saludado, se ha presentado, te ha dado las gracias o pregunta algo sobre la propia \
+conversacion (su nombre, lo que dijo antes).
 
 Responde en espanol, con calidez y en una o dos frases como maximo. Si te dice su \
-nombre, usalo. Ofrece ayuda con documentos de la institucion o dudas academicas.
+nombre, usalo. Si pregunta por algo dicho antes, respondelo con lo que aparece en la \
+conversacion; si no aparece, dilo sin inventarlo. Ofrece ayuda con documentos de la \
+institucion o dudas academicas.
 No menciones documentos, contexto ni como funcionas por dentro."""
 
-GENERAL_PROMPT = """Eres el asistente academico de la UNIAJC. El usuario pregunta \
+GENERAL_PROMPT = """Eres el asistente academico de la universidad. El usuario pregunta \
 algo general sobre educacion o vida academica que no depende de esta institucion en \
 concreto.
 
 Responde en espanol con tu propio conocimiento, de forma breve y clara: dos o tres \
 frases bastan. Cierra avisando de que es informacion general y no proviene de los \
 documentos de la institucion.
-Si la pregunta necesitara un dato propio de la UNIAJC para responderse bien, dilo en \
+Si la pregunta necesitara un dato propio de la universidad para responderse bien, dilo en \
 lugar de inventarlo."""
 
 # Sin LLM: el camino fuera de ambito no merece una generacion.
@@ -60,9 +67,111 @@ OFF_TOPIC_MESSAGE = (
 )
 
 
-def build_simple_prompt(question: str, system_prompt: str) -> str:
-    """Prompt sin contexto recuperado, para los caminos que no consultan la base."""
-    return f"{system_prompt}\n\nMensaje: {question}\n\nRespuesta:"
+# Identidad generica a proposito: el nombre de la institucion o del asistente no va en el
+# codigo. Quien lo quiera, lo escribe en una variante de prompt desde la UI.
+FIRST_TURN_GREETING = "¡Hola! Soy el asistente académico de la universidad."
+
+# Se anaden al prompt de sistema solo en el chat; /search son consultas sueltas.
+FIRST_TURN_INSTRUCTION = (
+    "Es el primer mensaje de la conversacion: empieza saludando de forma breve y cordial "
+    "y despues responde."
+)
+FOLLOW_UP_INSTRUCTION = "La conversacion ya empezo: no vuelvas a saludar ni a presentarte."
+# Para cuando el saludo se antepone fijo a la respuesta del modelo.
+NO_GREETING_INSTRUCTION = "El saludo ya esta dado: no saludes ni te presentes, responde directamente."
+
+# Estimacion sin tokenizador: con llama3.1 el espanol midio ~4,15 caracteres por token;
+# 4 deja margen a favor de no desbordar la ventana.
+CHARS_PER_TOKEN = 4
+
+Message = dict[str, str]
+
+
+def estimate_tokens(text: str) -> int:
+    return len(text) // CHARS_PER_TOKEN + 1
+
+
+def fit_history(history: Sequence[ChatTurn], max_tokens: int, answer_chars: int) -> list[Message]:
+    """Turnos previos que caben en max_tokens, del mas reciente hacia atras.
+
+    El primer mensaje del usuario se conserva siempre: es donde suele decir quien es y
+    que busca, y es lo que mas se nota si se olvida.
+    """
+    turns = [
+        {
+            "role": turn.role,
+            "content": _shorten(turn.content, answer_chars) if turn.role == "assistant" else turn.content,
+        }
+        for turn in history
+    ]
+    if not turns or max_tokens <= 0:
+        return []
+
+    pinned = turns[0] if turns[0]["role"] == "user" else None
+    rest = turns[1:] if pinned else turns
+    budget = max_tokens - (estimate_tokens(pinned["content"]) if pinned else 0)
+    if budget < 0:
+        return []
+
+    window: list[Message] = []
+    for turn in reversed(rest):
+        cost = estimate_tokens(turn["content"])
+        if cost > budget:
+            break
+        window.append(turn)
+        budget -= cost
+    window.reverse()
+
+    # Si se recorto, una respuesta al inicio del tramo quedaria sin la pregunta que la origino.
+    while window and window[0]["role"] == "assistant" and len(window) < len(rest):
+        window.pop(0)
+
+    return ([pinned] if pinned else []) + window
+
+
+def with_turn_instruction(
+    system_prompt: str, history: Sequence[ChatTurn] | None, llm_greets: bool = True
+) -> str:
+    """Anade la instruccion de saludo segun el turno. Sin historial (None) no es una conversacion.
+
+    llm_greets=False: el saludo del primer turno lo pone el codigo, el modelo no saluda.
+    """
+    if history is None:
+        return system_prompt
+    if history:
+        instruction = FOLLOW_UP_INSTRUCTION
+    else:
+        instruction = FIRST_TURN_INSTRUCTION if llm_greets else NO_GREETING_INSTRUCTION
+    return f"{system_prompt}\n\n{instruction}"
+
+
+def build_messages(system_prompt: str, user_content: str, history: Sequence[Message] = ()) -> list[Message]:
+    """Sistema, historial y mensaje actual, en ese orden.
+
+    Ollama reutiliza el inicio del prompt si no cambio desde la consulta anterior: con
+    el contenido nuevo al final, el historial ya leido no se vuelve a procesar.
+    """
+    return [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": user_content}]
+
+
+# Va al final, junto a la pregunta: llama3.1:8b obedece mas lo ultimo que lee. Sin el,
+# 2 de 12 respuestas largas decian "segun el contexto"; con el, 0 de 18.
+CONTEXT_REMINDER = "Responde directamente y como conocimiento propio, sin aludir a de donde sale la informacion."
+
+
+def build_context_message(question: str, chunks: list[str]) -> str:
+    """Mensaje del usuario con el contexto recuperado delante de la pregunta."""
+    context = "\n\n".join(chunks)
+    return f"Contexto:\n{context}\n\nPregunta: {question}\n\n{CONTEXT_REMINDER}"
+
+
+def institutional_instructions(system_prompt: str | None = None) -> str:
+    """Instrucciones del camino institucional: la variante elegida o, sin ella, las del repositorio."""
+    return render_system_prompt(system_prompt or SYSTEM_PROMPT_TEMPLATE)
+
+
+def _shorten(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[:limit].rstrip() + "…"
 
 
 def render_system_prompt(body: str) -> str:
@@ -72,14 +181,3 @@ def render_system_prompt(body: str) -> str:
     variante no revienten con KeyError.
     """
     return body.replace(NO_ANSWER_PLACEHOLDER, NO_ANSWER_MESSAGE)
-
-
-def build_prompt(question: str, chunks: list[str], system_prompt: str | None = None) -> str:
-    """Combina las instrucciones, el contexto recuperado y la pregunta en un unico prompt.
-
-    Sin system_prompt se usan las instrucciones del repositorio; con el, la variante
-    elegida para esa consulta.
-    """
-    context = "\n\n".join(chunks)
-    instructions = render_system_prompt(system_prompt or SYSTEM_PROMPT_TEMPLATE)
-    return f"{instructions}\n\nContexto:\n{context}\n\nPregunta: {question}\n\nRespuesta:"

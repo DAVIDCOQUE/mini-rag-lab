@@ -1,0 +1,45 @@
+{
+  "_nota": "Conjunto reservado: no ajustar ejemplos del router ni su prompt mirando estos casos, o deja de medir generalizacion. Para iterar, usar routing_cases.json.",
+  "histories": {
+    "inscripcion": [
+      {"role": "user", "content": "Buenas, me llamo Laura y quiero entrar a contaduría"},
+      {"role": "assistant", "content": "¡Hola Laura! Soy Sara. ¿En qué te puedo ayudar?"},
+      {"role": "user", "content": "¿Qué necesito para inscribirme como aspirante?"},
+      {"role": "assistant", "content": "Debes diligenciar el formulario de inscripción en línea, adjuntar tu documento y los resultados de la prueba Saber 11."}
+    ],
+    "acuerdo": [
+      {"role": "user", "content": "Háblame del acuerdo 008 del consejo directivo"},
+      {"role": "assistant", "content": "El acuerdo 008 aprueba la Política de Bienestar Institucional de la UNIAJC."}
+    ]
+  },
+  "cases": [
+    {"message": "¿En qué horario atiende la cafetería?", "expected": "institutional"},
+    {"message": "Perdí mi carnet, ¿cómo pido uno nuevo?", "expected": "institutional"},
+    {"message": "¿Quién firma las resoluciones de la universidad?", "expected": "institutional"},
+    {"message": "¿La universidad tiene convenios para hacer prácticas?", "expected": "institutional"},
+    {"message": "¿Cómo cancelo una materia?", "expected": "institutional"},
+    {"message": "¿Qué programas de posgrado tiene la UNIAJC?", "expected": "institutional"},
+
+    {"message": "¿Para qué sirve un resumen ejecutivo?", "expected": "general"},
+    {"message": "Dame consejos para exponer en clase sin nervios", "expected": "general"},
+    {"message": "¿Qué es el promedio ponderado?", "expected": "general"},
+
+    {"message": "Buenas tardes, Sara", "expected": "smalltalk"},
+    {"message": "Listo, ya entendí, gracias", "expected": "smalltalk"},
+    {"message": "Nos vemos", "expected": "smalltalk"},
+    {"message": "¿A qué carrera te dije que quería entrar?", "history": "inscripcion", "expected": "smalltalk"},
+    {"message": "¿Te acuerdas de mi nombre?", "history": "inscripcion", "expected": "smalltalk"},
+
+    {"message": "¿Cómo se prepara un buen café?", "expected": "off_topic"},
+    {"message": "¿Quién va ganando la liga?", "expected": "off_topic"},
+    {"message": "Hazme la tarea de cálculo", "expected": "off_topic"},
+    {"message": "¿Qué celular me recomiendas?", "expected": "off_topic"},
+
+    {"message": "¿Y cuánto vale la inscripción?", "history": "inscripcion", "expected": "institutional"},
+    {"message": "¿Hasta qué fecha puedo hacerlo?", "history": "inscripcion", "expected": "institutional"},
+    {"message": "¿Ese acuerdo cuándo se aprobó?", "history": "acuerdo", "expected": "institutional"},
+    {"message": "¿Y qué porcentaje de presupuesto asigna?", "history": "acuerdo", "expected": "institutional"},
+    {"message": "¿Qué es un crédito académico?", "history": "acuerdo", "expected": "general"},
+    {"message": "¿Quién es el secretario general?", "history": "inscripcion", "expected": "institutional"}
+  ]
+}

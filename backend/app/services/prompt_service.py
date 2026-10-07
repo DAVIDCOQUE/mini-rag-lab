@@ -95,7 +95,7 @@ def resolve_prompt(db: Session, code: str | None = None) -> tuple[str | None, st
     - sin code: la variante activa si la hay; si no, el del repositorio.
 
     Devuelve None como cuerpo cuando toca el prompt del repositorio, que es lo que
-    build_prompt interpreta como "usa el tuyo".
+    institutional_instructions interpreta como "usa el tuyo".
     """
     if code == DEFAULT_PROMPT_CODE:
         return None, DEFAULT_PROMPT_CODE

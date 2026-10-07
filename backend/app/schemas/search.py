@@ -47,3 +47,8 @@ class SearchResponse(BaseModel):
     # Camino elegido por el router y su similitud con cada uno, para poder ver por que.
     route: str | None = None
     route_scores: dict[str, float] = Field(default_factory=dict)
+    # Router que decidio ("llm" o "embedding"), su razon si la dio, y la pregunta con
+    # la que se busco en los documentos (reescrita en los seguimientos).
+    router: str | None = None
+    route_reason: str | None = None
+    search_query: str | None = None
