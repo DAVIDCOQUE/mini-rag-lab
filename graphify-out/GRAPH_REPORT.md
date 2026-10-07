@@ -1,12 +1,18 @@
-# Graph Report - .  (2026-07-30)
+# Graph Report - mini-rag-lab  (2026-10-07)
 
 ## Corpus Check
-- Corpus is ~13,529 words - fits in a single context window. You may not need a graph.
+- 96 files · ~22,725 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 535 nodes · 753 edges · 48 communities (40 shown, 8 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 75 edges (avg confidence: 0.65)
-- Token cost: 44,843 input · 0 output
+- 718 nodes · 1095 edges · 50 communities (41 shown, 9 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 113 edges (avg confidence: 0.66)
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `fa55ecfe`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - PDF Parsing & Chunking
@@ -36,22 +42,23 @@
 - OCR Stub
 - PDF Loader Stub
 - LLM Service Stub
-- Prompt Builder Stub
 - Qdrant Point Search
 - Health Response Schema
 - Package Init Marker
+- Package Init Marker
+- docker-entrypoint.sh
 
 ## God Nodes (most connected - your core abstractions)
 1. `Document` - 22 edges
 2. `DocumentsComponent` - 20 edges
-3. `DocumentProcessingService` - 16 edges
-4. `QdrantService` - 15 edges
-5. `UiPreferencesService` - 13 edges
-6. `Chunker` - 12 edges
-7. `EmptyDocumentError` - 12 edges
-8. `IndexingError` - 12 edges
-9. `DocumentItem` - 12 edges
-10. `Indexer` - 11 edges
+3. `PdfParser` - 17 edges
+4. `DocumentProcessingService` - 16 edges
+5. `Chunker` - 15 edges
+6. `QdrantService` - 15 edges
+7. `UiPreferencesService` - 14 edges
+8. `PromptsComponent` - 14 edges
+9. `EmbeddingService` - 12 edges
+10. `EmptyDocumentError` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Backend (FastAPI) setup guide` --semantically_similar_to--> `Mini RAG Lab (README)`  [INFERRED] [semantically similar]
@@ -62,8 +69,8 @@
   frontend/src/app/features/home/home.component.html → README.md
 - `Frontend Angular CLI guide` --conceptually_related_to--> `Proxy de desarrollo Angular → FastAPI (mismo origen, sin CORS)`  [INFERRED]
   frontend/README.md → README.md
-- `DocumentProcessingService` --uses--> `Document`  [INFERRED]
-  backend/app/services/document_processing_service.py → backend/app/models/document.py
+- `_resolve_filenames()` --calls--> `get_document()`  [INFERRED]
+  backend/app/api/routes/chat.py → backend/app/api/routes/documents.py
 
 ## Import Cycles
 - None detected.
@@ -74,23 +81,23 @@
 - **Arranque del repo tras clonar (artefactos fuera de git que hay que recrear)** — readme_qdrant_setup_script, readme_postgres_hosting_open, readme_ai_skills_setup, readme_graphify_knowledge_graph [INFERRED 0.85]
 - **Angular feature templates sharing one design system (surface/eyebrow/enter/copy())** — frontend_src_app_features_home_home_component_home_template, frontend_src_app_features_chat_chat_component_chat_template, frontend_src_app_features_documents_documents_component_documents_template, frontend_src_app_features_search_search_component_search_template, frontend_src_app_layout_main_layout_component_main_layout_template [EXTRACTED 1.00]
 
-## Communities (48 total, 8 thin omitted)
+## Communities (50 total, 9 thin omitted)
 
 ### Community 0 - "PDF Parsing & Chunking"
-Cohesion: 0.08
-Nodes (32): PdfParser, Path, Devuelve el texto de cada pagina (indice 0 = pagina 1), normalizado a NFC., Extrae el texto de un PDF usando PyMuPDF, conservando la separacion por pagina., Chunker, Divide el texto en chunks respetando frases (RecursiveCharacterTextSplitter)., Trocea cada pagina por separado y conserva su numero en metadata['page'] (1-inde, Quita headers/footers: lineas repetidas en la mayoria de paginas, conservando la (+24 more)
+Cohesion: 0.07
+Nodes (39): Chunker, Divide el texto en chunks respetando frases (RecursiveCharacterTextSplitter)., Trocea cada pagina por separado y conserva su numero en metadata['page'] (1-inde, Quita headers/footers: lineas repetidas en la mayoria de paginas, conservando la, Une los saltos de linea de line-wrap (conservando parrafos) para no cortar frase, Indexer, UUID, Orquesta el indexado: chunks -> embeddings -> almacenamiento en Qdrant. (+31 more)
 
 ### Community 1 - "Chat & Search Client Services"
-Cohesion: 0.06
-Nodes (19): App, appConfig, routes, Component, HealthResponse, HealthService, Injectable, Injectable (+11 more)
+Cohesion: 0.18
+Nodes (5): MainLayoutComponent, NavItem, ServiceState, toServiceState(), Component
 
 ### Community 2 - "Documents Feature & Models"
 Cohesion: 0.10
 Nodes (12): ChunkResult, DocumentItem, DocumentStatus, DocumentUpdate, IndexedChunks, IndexResult, ProcessingResult, DocumentService (+4 more)
 
 ### Community 3 - "Angular Build Tooling Deps"
-Cohesion: 0.06
-Nodes (28): chat(), Reenvia el mensaje del usuario a Ollama y devuelve la respuesta del modelo., health(), Estado del servicio verificando la conectividad real de PostgreSQL, Qdrant y Oll, configure_logging(), Configura el logging basico en consola para toda la aplicacion., log_requests(), Registra metodo, ruta, codigo HTTP y tiempo de respuesta de cada peticion. (+20 more)
+Cohesion: 0.05
+Nodes (41): chat(), ScoredPoint, Session, RAG conversacional. El router decide si la pregunta necesita el corpus o no., Nombre original de cada chunk recuperado, cacheado por documento para no repetir, _resolve_filenames(), health(), Estado del servicio verificando la conectividad real de PostgreSQL, Qdrant y Oll (+33 more)
 
 ### Community 4 - "Angular Build Targets Config"
 Cohesion: 0.05
@@ -101,12 +108,8 @@ Cohesion: 0.06
 Nodes (37): build, extract-i18n, serve, test, builder, configurations, defaultConfiguration, options (+29 more)
 
 ### Community 6 - "Project Docs & UI Templates"
-Cohesion: 0.10
-Nodes (32): Base, Base declarativa para todos los modelos ORM. Alembic la usa como metadata objeti, Document, Documento subido por el usuario. En esta fase solo se gestiona el archivo, sin p, create(), delete(), get(), list_all() (+24 more)
-
-### Community 7 - "Chat, Logging & LLM Services"
-Cohesion: 0.11
-Nodes (8): ChatMessage, ChatRole, ChatApiResponse, ChatErrorKind, ChatService, Injectable, ChatComponent, Component
+Cohesion: 0.07
+Nodes (38): Document, Documento subido por el usuario. En esta fase solo se gestiona el archivo, sin p, ScoredPoint, UUID, QdrantService, Gestiona la conexion y las operaciones contra la base vectorial Qdrant., Crea la coleccion si no existe (vectores de EMBEDDING_DIM, distancia coseno)., Inserta/actualiza puntos. Cada item: {id, vector, payload}. (+30 more)
 
 ### Community 8 - "Angular Runtime Dependencies"
 Cohesion: 0.08
@@ -117,16 +120,16 @@ Cohesion: 0.15
 Nodes (22): create_document(), delete_document(), get_document(), get_indexed_chunks(), index_document(), list_documents(), process_document(), DocumentUpdate (+14 more)
 
 ### Community 10 - "App Shell & Main Layout"
-Cohesion: 0.17
-Nodes (18): App root template (router-outlet only), Chat studio template (thread + composer + inspector), copy() signal-based i18n pattern, Failure shown as a system state with a retry exit, Send and stop share one slot (affordance changes, control does not move), Chunk inspector dialogs (process result vs indexed vectors), Document status lifecycle (process → index → INDEXED inspect), Documents library template (toolbar + doc cards + dialogs) (+10 more)
+Cohesion: 0.10
+Nodes (35): Alembic migration workflow, Backend (FastAPI) setup guide, Backend pinned dependencies, Frontend Angular CLI guide, App root template (router-outlet only), Chat studio template (thread + composer + inspector), copy() signal-based i18n pattern, Failure shown as a system state with a retry exit (+27 more)
 
 ### Community 11 - "Angular Workspace Config"
-Cohesion: 0.23
-Nodes (17): Alembic migration workflow, Backend (FastAPI) setup guide, Backend pinned dependencies, Frontend Angular CLI guide, Skills de IA versionadas y gestionadas con npx skills, Superficie HTTP de la API (/health y prefijo /api), Embeddings con bge-m3 (1024 dimensiones), Reranking con cross-encoder vía FastEmbed (+9 more)
+Cohesion: 0.08
+Nodes (42): activate_default_prompt(), activate_prompt(), create_prompt(), delete_prompt(), get_default_prompt(), get_prompt(), list_prompts(), DefaultPrompt (+34 more)
 
 ### Community 12 - "Qdrant Vector Store Service"
-Cohesion: 0.18
-Nodes (7): SearchResponse, SearchResultItem, SearchService, Injectable, SearchComponent, Component, environment
+Cohesion: 0.08
+Nodes (19): ChatMessage, ChatRole, DefaultPrompt, PromptTemplate, PromptTemplatePayload, SearchResponse, SearchResultItem, SearchRoute (+11 more)
 
 ### Community 13 - "Health Check Services"
 Cohesion: 0.13
@@ -134,59 +137,63 @@ Nodes (14): cli, analytics, prefix, projectType, root, schematics, sourceRoot, n
 
 ### Community 14 - "Chat Component Interactions"
 Cohesion: 0.19
-Nodes (7): UUID, QdrantService, Gestiona la conexion y las operaciones contra la base vectorial Qdrant., Crea la coleccion si no existe (vectores de EMBEDDING_DIM, distancia coseno)., Inserta/actualiza puntos. Cada item: {id, vector, payload}., Elimina todos los vectores asociados a un documento., Devuelve todos los puntos guardados de un documento (sin el vector).
+Nodes (16): Base, Base declarativa para todos los modelos ORM. Alembic la usa como metadata objeti, PromptTemplate, Variante del prompt de sistema creada desde la UI.      El prompt por defecto NO, create(), deactivate_all(), delete(), get_active() (+8 more)
 
 ### Community 15 - "Semantic Search Endpoint"
-Cohesion: 0.31
-Nodes (7): Busqueda semantica: embebe la consulta y devuelve los chunks mas relevantes., search(), BaseModel, SearchRequest, SearchResponse, SearchResultItem, SearchResponse
+Cohesion: 0.20
+Nodes (4): Injectable, UiLocale, UiPreferencesService, UiTheme
 
 ### Community 16 - "App Settings & Config"
 Cohesion: 0.29
-Nodes (6): get_settings(), URL de conexion SQLAlchemy construida a partir de las piezas POSTGRES_*., Configuracion central de la app. Todos los valores provienen de variables de ent, Instancia unica de settings reutilizada en toda la app., Settings, BaseSettings
+Nodes (6): get_settings(), Configuracion central de la app. Todos los valores provienen de variables de ent, URL de conexion SQLAlchemy construida a partir de las piezas POSTGRES_*., Instancia unica de settings reutilizada en toda la app., Settings, BaseSettings
 
 ### Community 17 - "Cross-Encoder Reranker"
-Cohesion: 0.25
-Nodes (4): Devuelve un puntaje de relevancia por documento, en el mismo orden de entrada., Reordena candidatos con un cross-encoder (lee pregunta + chunk juntos)., Reranker, TextCrossEncoder
+Cohesion: 0.11
+Nodes (13): Devuelve un puntaje de relevancia por documento, en el mismo orden de entrada., Reordena candidatos con un cross-encoder (lee pregunta + chunk juntos)., Reranker, ScoredPoint, Recupera los fragmentos mas relevantes para una consulta del usuario.      Dos e, Embebe la consulta y devuelve los chunks mas relevantes.          Con vector se, Retriever, main() (+5 more)
 
 ### Community 18 - "Ollama Embedding Service"
-Cohesion: 0.33
-Nodes (4): EmbeddingService, Genera embeddings a partir de texto usando la API HTTP de Ollama (/api/embed)., Devuelve un vector por cada texto (en el mismo orden)., Embedding de una sola consulta.
+Cohesion: 0.10
+Nodes (22): EmbeddingService, Genera embeddings a partir de texto usando la API HTTP de Ollama (/api/embed)., Devuelve un vector por cada texto (en el mismo orden)., Embedding de una sola consulta., _cosine(), Enum, str, QueryRouter (+14 more)
 
 ### Community 19 - "Indexing Orchestrator"
 Cohesion: 0.33
-Nodes (4): Indexer, UUID, Orquesta el indexado: chunks -> embeddings -> almacenamiento en Qdrant., Genera embeddings de los chunks y los guarda en Qdrant. Devuelve cuantos indexo.
-
-### Community 20 - "Retriever Pipeline"
-Cohesion: 0.29
-Nodes (4): ScoredPoint, Recupera los fragmentos mas relevantes para una consulta del usuario.      Dos e, Embebe la consulta y devuelve los chunks mas relevantes., Retriever
-
-### Community 21 - "Retrieval Evaluation Script"
-Cohesion: 0.47
-Nodes (5): main(), _matches(), _normalize(), Evalua la calidad de la recuperacion contra un set de preguntas.  Requiere Qdran, Minusculas, sin acentos y sin espacios extra, para comparar de forma robusta.
+Nodes (4): App, appConfig, routes, Component
 
 ### Community 22 - "Search Component"
 Cohesion: 0.50
 Nodes (3): get_db(), Session, Dependencia FastAPI: entrega una sesion por request y la cierra al terminar.
 
+### Community 25 - "Documents Table Migration"
+Cohesion: 0.09
+Nodes (23): OCR, Extrae texto de una imagen mediante EasyOCR.      Unica responsabilidad: recibir, Descarga y carga los modelos sin procesar ninguna imagen., Recibe una imagen (array HxWxC) y devuelve el texto detectado, unido por saltos, Deja el OCR listo al arrancar, no en el primer documento escaneado.      Los mod, warm_up(), PdfParser, Path (+15 more)
+
+### Community 27 - "PDF Loader Stub"
+Cohesion: 0.11
+Nodes (20): generate(), LLMError, Exception, No fue posible generar una respuesta (Ollama caido o modelo ausente)., Envia el prompt a Ollama (/api/generate) y devuelve el texto generado., build_prompt(), build_simple_prompt(), Prompt sin contexto recuperado, para los caminos que no consultan la base. (+12 more)
+
+### Community 28 - "LLM Service Stub"
+Cohesion: 0.43
+Nodes (4): HealthResponse, HealthService, Injectable, ConnectionState
+
 ## Knowledge Gaps
-- **82 isolated node(s):** `$schema`, `version`, `newProjectRoot`, `projectType`, `style` (+77 more)
+- **84 isolated node(s):** `docker-entrypoint.sh script`, `$schema`, `version`, `newProjectRoot`, `projectType` (+79 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `QdrantService` connect `Chat Component Interactions` to `Indexing Orchestrator`, `Retriever Pipeline`, `Prompt Builder Stub`, `Project Docs & UI Templates`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Why does `Document` connect `Project Docs & UI Templates` to `PDF Parsing & Chunking`, `Indexing Orchestrator`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Why does `Indexer` connect `Indexing Orchestrator` to `PDF Parsing & Chunking`, `Ollama Embedding Service`, `Chat Component Interactions`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `Document` connect `Project Docs & UI Templates` to `PDF Parsing & Chunking`, `Chat Component Interactions`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+- **Why does `QdrantService` connect `Project Docs & UI Templates` to `PDF Parsing & Chunking`, `Cross-Encoder Reranker`, `Ollama Embedding Service`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `PdfParser` connect `Documents Table Migration` to `PDF Parsing & Chunking`, `Angular Build Tooling Deps`?**
+  _High betweenness centrality (0.033) - this node is a cross-community bridge._
 - **Are the 7 inferred relationships involving `Document` (e.g. with `Base` and `DocumentProcessingService`) actually correct?**
   _`Document` has 7 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 12 inferred relationships involving `PdfParser` (e.g. with `OCR` and `DocumentProcessingService`) actually correct?**
+  _`PdfParser` has 12 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 8 inferred relationships involving `DocumentProcessingService` (e.g. with `PdfParser` and `Document`) actually correct?**
   _`DocumentProcessingService` has 8 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 7 inferred relationships involving `QdrantService` (e.g. with `Indexer` and `.__init__()`) actually correct?**
-  _`QdrantService` has 7 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `$schema`, `version`, `newProjectRoot` to the rest of the system?**
-  _82 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Are the 8 inferred relationships involving `Chunker` (e.g. with `DocumentProcessingService` and `.__init__()`) actually correct?**
+  _`Chunker` has 8 INFERRED edges - model-reasoned connections that need verification._
