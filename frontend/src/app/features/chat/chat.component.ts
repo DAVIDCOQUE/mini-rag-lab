@@ -24,12 +24,22 @@ const PIN_THRESHOLD_PX = 120;
 // convertirse en un estado que el usuario tenga que esperar.
 const COPIED_FEEDBACK_MS = 1600;
 
+// En el quiosco no hay forma de saber que el estudiante se fue: tras este tiempo sin
+// tocar nada se pregunta, y si nadie responde la conversacion se borra para el siguiente.
+const IDLE_TIMEOUT_MS = 60_000;
+const IDLE_COUNTDOWN_S = 10;
+
 @Component({
   selector: 'app-chat',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, MatButtonModule, MatIconModule],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss',
+  host: {
+    '(document:pointerdown)': 'onActivity($event)',
+    '(document:keydown)': 'onActivity($event)',
+    '(document:wheel)': 'onActivity($event)',
+  },
 })
 export class ChatComponent {
   private readonly chat = inject(ChatService);
@@ -47,18 +57,23 @@ export class ChatComponent {
   // Id del mensaje cuya copia se acaba de confirmar.
   readonly copiedId = signal<string | null>(null);
 
+  // Segundos que quedan antes de borrar la conversacion; null sin aviso en pantalla.
+  readonly idleCountdown = signal<number | null>(null);
+
   private pinnedToBottom = true;
   private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private countdownTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly copy = computed(() => {
     const locale = this.ui.locale();
 
     return locale === 'es'
       ? {
-          clear: 'Limpiar sesión',
+          clear: 'Terminar conversación',
           conversation: 'Conversación',
           hint: 'Enter para enviar · Shift+Enter para nueva línea',
-          empty: 'Escribe una pregunta para iniciar una conversación fundamentada.',
+          empty: 'Hola, ¿en qué te puedo ayudar?',
           emptyHint: 'O empieza por una de las sugerencias del panel derecho.',
           placeholder: 'Pregunta sobre documentos, fuentes o próximos pasos…',
           send: 'Enviar mensaje',
@@ -68,6 +83,9 @@ export class ChatComponent {
           copied: 'Copiado',
           thinking: 'Pensando…',
           you: 'Tú',
+          idleTitle: '¿Sigues ahí?',
+          idleBody: (seconds: number) => `La conversación se borrará en ${seconds} s.`,
+          stay: 'Sigo aquí',
           model: 'IA',
           errors: {
             unreachable: 'No se pudo obtener respuesta del modelo. Comprueba que Ollama esté activo.',
@@ -90,10 +108,10 @@ export class ChatComponent {
           ],
         }
       : {
-          clear: 'Clear session',
+          clear: 'End conversation',
           conversation: 'Conversation',
           hint: 'Enter to send · Shift+Enter for a new line',
-          empty: 'Ask a question to start a grounded conversation.',
+          empty: 'Hi, how can I help you?',
           emptyHint: 'Or start from one of the suggestions on the right.',
           placeholder: 'Ask about documents, sources or next steps…',
           send: 'Send message',
@@ -103,6 +121,9 @@ export class ChatComponent {
           copied: 'Copied',
           thinking: 'Thinking…',
           you: 'You',
+          idleTitle: 'Are you still there?',
+          idleBody: (seconds: number) => `This conversation will be cleared in ${seconds} s.`,
+          stay: "I'm still here",
           model: 'AI',
           errors: {
             unreachable: 'Could not get a reply from the model. Check that Ollama is running.',
@@ -154,8 +175,15 @@ export class ChatComponent {
       }
     });
 
+    // Mientras el asistente responde la inactividad no corre: una respuesta tarda hasta ~18 s.
+    effect(() => {
+      if (this.loading()) this.clearIdle();
+      else this.armIdle();
+    });
+
     this.destroyRef.onDestroy(() => {
       if (this.copiedTimer) clearTimeout(this.copiedTimer);
+      this.clearIdle();
     });
   }
 
@@ -184,8 +212,49 @@ export class ChatComponent {
     this.chat.retry();
   }
 
+  // Borra todo lo del estudiante actual, incluido lo escrito sin enviar.
   clear(): void {
+    this.clearIdle();
     this.chat.clearConversation();
+    this.draft = '';
+    this.pinnedToBottom = true;
+  }
+
+  stay(): void {
+    this.armIdle();
+  }
+
+  onActivity(event: Event): void {
+    // Los botones del aviso tienen su propia accion; reiniciar aqui los desmontaria
+    // antes de que llegue el click.
+    if ((event.target as Element | null)?.closest?.('.idle-dialog')) return;
+    if (this.loading()) return;
+    this.armIdle();
+  }
+
+  private armIdle(): void {
+    this.clearIdle();
+    this.idleTimer = setTimeout(() => this.startCountdown(), IDLE_TIMEOUT_MS);
+  }
+
+  private startCountdown(): void {
+    // La pantalla de espera no caduca: solo se avisa si hay algo que borrar.
+    if (!this.hasMessages() && !this.draft.trim()) return;
+
+    this.idleCountdown.set(IDLE_COUNTDOWN_S);
+    this.countdownTimer = setInterval(() => {
+      const left = (this.idleCountdown() ?? 0) - 1;
+      if (left <= 0) this.clear();
+      else this.idleCountdown.set(left);
+    }, 1000);
+  }
+
+  private clearIdle(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    if (this.countdownTimer) clearInterval(this.countdownTimer);
+    this.idleTimer = null;
+    this.countdownTimer = null;
+    this.idleCountdown.set(null);
   }
 
   usePrompt(prompt: string): void {

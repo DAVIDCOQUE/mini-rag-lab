@@ -10,9 +10,9 @@
         mat-stroked-button
         type="button"
         (click)="clear()"
-        [disabled]="loading() || !hasMessages()"
+        [disabled]="!hasMessages() && !draft.trim()"
       >
-        <mat-icon>delete_sweep</mat-icon>
+        <mat-icon>logout</mat-icon>
         {{ copy().clear }}
       </button>
     </header>
@@ -155,3 +155,29 @@
     </article>
   </aside>
 </div>
+
+<!-- Fuera de .studio: su animacion de entrada crea un contexto que encerraria el fixed. -->
+@if (idleCountdown(); as seconds) {
+  <div class="idle-scrim">
+    <div
+      class="idle-dialog surface surface--panel"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="idle-title"
+      aria-describedby="idle-body"
+    >
+      <mat-icon>hourglass_bottom</mat-icon>
+      <h2 id="idle-title" class="t-title-2">{{ copy().idleTitle }}</h2>
+      <p id="idle-body" class="t-caption" aria-live="polite">{{ copy().idleBody(seconds) }}</p>
+
+      <div class="idle-dialog__actions">
+        <button mat-stroked-button type="button" (click)="clear()">
+          {{ copy().clear }}
+        </button>
+        <button mat-flat-button type="button" (click)="stay()">
+          {{ copy().stay }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

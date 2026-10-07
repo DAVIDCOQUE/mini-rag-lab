@@ -410,6 +410,63 @@
 }
 
 // -----------------------------------------------------------------------------
+// Aviso de inactividad (quiosco)
+// -----------------------------------------------------------------------------
+.idle-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, 0.45);
+  animation: surface-fade var(--dur-base) var(--ease-out) both;
+}
+
+.idle-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: min(100%, 26rem);
+  padding: var(--space-5);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  animation: surface-enter var(--dur-base) var(--ease-out) both;
+
+  > mat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+    color: var(--accent);
+  }
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  @include motion.reduced-motion {
+    animation-name: surface-fade;
+  }
+}
+
+// Objetivos grandes: se usa con el dedo en una pantalla tactil.
+.idle-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+
+  button {
+    min-height: 3rem;
+    padding-inline: var(--space-5);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Adaptacion
 // -----------------------------------------------------------------------------
 // Sin dos columnas, hilo e inspector se apilan pero mantienen su propio

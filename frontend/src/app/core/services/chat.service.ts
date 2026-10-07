@@ -76,8 +76,14 @@ export class ChatService {
     this._error.set(null);
     this._loading.set(true);
 
+    // El ultimo mensaje es la pregunta que se envia ahora; el resto es el historial.
+    // El backend no guarda nada: la memoria de la conversacion es esta lista.
+    const history = this._messages()
+      .slice(0, -1)
+      .map(({ role, content }) => ({ role, content }));
+
     this.pending = this.http
-      .post<ChatApiResponse>(`${this.baseUrl}/api/chat`, { message: text })
+      .post<ChatApiResponse>(`${this.baseUrl}/api/chat`, { message: text, history })
       .subscribe({
         next: (res) => {
           this.append('assistant', res.answer);
