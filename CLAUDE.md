@@ -82,7 +82,7 @@ Están en `.agents/skills/` (con junctions en `.claude/skills/`) y versionadas e
 
 ## Grafo de conocimiento
 
-Existe `graphify-out/graph.json` (529 nodos, 737 aristas). Para preguntas de arquitectura,
+Existe `graphify-out/graph.json` (718 nodos, 1095 aristas). Para preguntas de arquitectura,
 "qué usa qué" o "dónde vive esto", consultarlo primero con `graphify query "<pregunta>"`
 antes de rastrear con Grep/Read: es más barato y ya está construido. Leer archivos solo
 para el detalle exacto que el grafo ya localizó.
@@ -101,6 +101,8 @@ alembic upgrade head          # tras un pull: la 0002 crea prompt_templates
 # tests (desde backend/)
 pytest                          # unitarios, sin servicios levantados
 python -m evaluation.evaluate   # recall@k y MRR; exige Qdrant, Ollama y documentos indexados
+python -m evaluation.evaluate_routing   # aciertos del router; exige Ollama. Iterar con
+                                        # routing_cases.json; routing_holdout.json es reservado
 
 # frontend (desde frontend/)
 npm start
