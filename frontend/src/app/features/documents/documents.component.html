@@ -67,6 +67,9 @@
 
         @if (doc.kind === 'FORM') {
           <p class="doc__hint t-caption">
+            @if (doc.form_code) {
+              <strong>{{ copy().codeBadge }} {{ doc.form_code }}</strong> ·
+            }
             {{ copy().formCardHint }} <em>“{{ doc.description }}”</em>
           </p>
         } @else {
@@ -168,6 +171,11 @@
         <textarea matInput rows="3" [(ngModel)]="uploadDescription" required></textarea>
         <mat-hint>{{ copy().descriptionHint }}</mat-hint>
       </mat-form-field>
+      <mat-form-field appearance="outline" class="dialog-field">
+        <mat-label>{{ copy().codeLabel }}</mat-label>
+        <input matInput [(ngModel)]="uploadCode" />
+        <mat-hint>{{ copy().codeHint }}</mat-hint>
+      </mat-form-field>
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
@@ -203,6 +211,11 @@
         <mat-label>{{ copy().descriptionLabel }}</mat-label>
         <textarea matInput rows="3" [(ngModel)]="editDescription" required></textarea>
         <mat-hint>{{ copy().descriptionHint }}</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="dialog-field">
+        <mat-label>{{ copy().codeLabel }}</mat-label>
+        <input matInput [(ngModel)]="editCode" />
+        <mat-hint>{{ copy().codeHint }}</mat-hint>
       </mat-form-field>
     }
   </mat-dialog-content>

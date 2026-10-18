@@ -33,6 +33,10 @@ class RouteDecision:
     router: str  # "llm" o "embedding"
     reason: str | None = None
     scores: dict[str, float] = field(default_factory=dict)
+    # Pregunta por un concepto general (que es un credito) y no por un dato de esta
+    # universidad. Sin documentos que lo cubran, solo un concepto se responde de memoria.
+    # El router de embeddings no lo distingue: queda en False, que es lo seguro.
+    is_concept: bool = False
     # Embedding de search_query si ya se calculo, para no repetirlo al buscar.
     vector: list[float] | None = None
 

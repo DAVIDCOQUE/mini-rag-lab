@@ -1,5 +1,8 @@
 import logging
+import re
 import uuid
+from collections.abc import Sequence
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -59,9 +62,24 @@ class FormMatcher:
         # administrador la edita, el vector viejo deja de valer.
         self._vectors: dict[uuid.UUID, tuple[str, list[float]]] = {}
 
-    def match(self, db: Session, question: str, query_vector: list[float]) -> list[tuple[Document, float]]:
-        """Formatos que sirven para la pregunta, del mas parecido al menos."""
+    def match(
+        self,
+        db: Session,
+        question: str,
+        query_vector: list[float],
+        answer: str | None = None,
+        context: str = "",
+    ) -> list[tuple[Document, float]]:
+        """Formatos que sirven para la pregunta.
+
+        Primero por codigo: si la respuesta cita el codigo de un formato (la guia dice
+        "diligenciar el formato R-GA002"), se ofrece ese. Si no, por descripcion.
+        """
         forms = document_repository.list_forms(db)
+        cited = cited_forms(forms, answer, context)
+        if cited:
+            return [(form, 1.0) for form in cited][:MAX_FORMS]
+
         stale = [form for form in forms if self._vectors.get(form.id, ("",))[0] != form.description]
         if stale:
             vectors = self.embedding_service.embed([form.description for form in stale])
@@ -77,6 +95,27 @@ class FormMatcher:
         if settings.ROUTER_MODE == "llm":
             return confirm_with_llm(question, scored)
         return choose_by_similarity(scored)
+
+
+def _compact(text: str) -> str:
+    """Solo letras y digitos en mayuscula: "R-GA 004" y "r-ga004" valen igual."""
+    return re.sub(r"[^0-9A-Z]", "", text.upper())
+
+
+def cited_forms(forms: Sequence[Document], answer: str | None, context: str) -> list[Document]:
+    """Formatos cuyo codigo cita la respuesta y aparece tambien en los fragmentos usados.
+
+    Exigirlo en ambos sitios evita que un codigo inventado por el modelo dispare un
+    formato que la guia no menciona para ese tramite.
+    """
+    if not answer:
+        return []
+    said, grounded = _compact(answer), _compact(context)
+    return [
+        form
+        for form in forms
+        if form.form_code and _compact(form.form_code) in said and _compact(form.form_code) in grounded
+    ]
 
 
 def choose_by_similarity(scored: list[tuple[Document, float]]) -> list[tuple[Document, float]]:
@@ -111,3 +150,18 @@ def confirm_with_llm(question: str, scored: list[tuple[Document, float]]) -> lis
         if item.get("serves") is True and isinstance(item.get("form"), int) and 1 <= item["form"] <= len(candidates)
     }
     return [candidates[n - 1] for n in sorted(chosen)][:MAX_FORMS]
+
+
+def display_name(form: Document) -> str:
+    """Nombre con el que se ofrece el formato: codigo y titulo legible del archivo."""
+    title = re.sub(r"[_\-]+", " ", Path(form.original_name).stem).strip().capitalize()
+    return f"{form.form_code} ({title})" if form.form_code else title
+
+
+def offered_in(forms: Sequence[Document], text: str) -> list[Document]:
+    """Formatos que se ofrecieron en un mensaje del asistente.
+
+    El backend no guarda la conversacion: lo ofrecido se recupera del texto de la oferta,
+    que lleva el nombre exacto de display_name.
+    """
+    return [form for form in forms if display_name(form) in text]

@@ -25,11 +25,18 @@ export class DocumentService {
     return this.http.get<DocumentItem>(`${this.endpoint}/${id}`);
   }
 
-  upload(file: File, kind: DocumentKind = 'KNOWLEDGE', description = ''): Observable<DocumentItem> {
+  upload(
+    file: File,
+    kind: DocumentKind = 'KNOWLEDGE',
+    description = '',
+    formCode = '',
+  ): Observable<DocumentItem> {
     const form = new FormData();
     form.append('file', file);
     form.append('kind', kind);
     if (description) form.append('description', description);
+    // Sin codigo, el backend intenta leerlo del PDF.
+    if (formCode) form.append('form_code', formCode);
     return this.http.post<DocumentItem>(this.endpoint, form);
   }
 

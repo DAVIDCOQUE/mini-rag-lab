@@ -139,3 +139,100 @@ def test_un_numero_de_formato_inventado_se_ignora(monkeypatch):
     _confirma(monkeypatch, [{"form": 7, "reason": "-", "serves": True}])
 
     assert fm.confirm_with_llm("x", [(_form("a"), 0.9)]) == []
+
+
+def _coded(code: str | None, description: str = "x"):
+    return SimpleNamespace(id=uuid.uuid4(), description=description, original_name=f"{code}.pdf", form_code=code)
+
+
+def test_se_ofrece_el_formato_cuyo_codigo_cita_la_respuesta():
+    semestre, matricula = _coded("R-GA004"), _coded("R-GA002")
+    guia = "Cancelación de Cursos. REQUISITOS: Diligenciar formato R-GA002 y radicarlo."
+
+    elegidos = fm.cited_forms([semestre, matricula], "Debes diligenciar el formato R-GA002.", guia)
+
+    assert elegidos == [matricula]
+
+
+def test_el_codigo_se_reconoce_con_otra_escritura():
+    form = _coded("R-GA004")
+
+    assert fm.cited_forms([form], "llena el formato r-ga 004", "formato R-GA004") == [form]
+
+
+def test_un_codigo_que_no_esta_en_la_guia_no_cuenta():
+    # El modelo podria inventar un codigo: sin respaldo en los fragmentos no se ofrece.
+    form = _coded("R-GA004")
+
+    assert fm.cited_forms([form], "Usa el formato R-GA004.", "texto sin codigos") == []
+
+
+def test_un_formato_sin_codigo_nunca_se_elige_por_codigo():
+    assert fm.cited_forms([_coded(None)], "formato R-GA004", "formato R-GA004") == []
+
+
+def test_sin_codigo_citado_decide_la_descripcion(monkeypatch):
+    monkeypatch.setattr(settings, "ROUTER_MODE", "embedding")
+    monkeypatch.setattr(settings, "FORM_MATCH_MIN_SCORE", 0.6)
+    form = _coded(None, "cancelar semestre")
+    monkeypatch.setattr(fm.document_repository, "list_forms", lambda db: [form])
+    matcher = fm.FormMatcher()
+    monkeypatch.setattr(matcher.embedding_service, "embed", lambda texts: [[1.0, 0.0]])
+
+    elegidos = matcher.match(None, "q", [1.0, 0.0], answer="Respuesta sin codigos.", context="guia")
+
+    assert [f for f, _ in elegidos] == [form]
+
+
+def test_lee_el_codigo_impreso_en_el_pdf(tmp_path):
+    import fitz
+
+    path = tmp_path / "formato.pdf"
+    pdf = fitz.open()
+    pdf.new_page().insert_text((72, 72), "UNIVERSIDAD SANTIAGO DE CALI  CODIGO: R-GA004  VERSION: 3")
+    pdf.save(path)
+
+    assert document_service._extract_code(path) == "R-GA004"
+
+
+def test_un_pdf_sin_codigo_lo_deja_vacio(tmp_path):
+    import fitz
+
+    path = tmp_path / "formato.pdf"
+    pdf = fitz.open()
+    pdf.new_page().insert_text((72, 72), "Nombre: ______  Firma: ______")
+    pdf.save(path)
+
+    assert document_service._extract_code(path) is None
+
+
+from app.rag import prompt_builder as pb
+
+
+def test_el_nombre_ofrecido_lleva_codigo_y_titulo():
+    form = SimpleNamespace(original_name="FORMATO_DE_CANCELACION_DE_SEMESTRE.pdf", form_code="R-GA004")
+
+    assert fm.display_name(form) == "R-GA004 (Formato de cancelacion de semestre)"
+
+
+def test_lo_ofrecido_se_recupera_del_mensaje_del_asistente():
+    semestre = SimpleNamespace(original_name="Cancelacion.pdf", form_code="R-GA004")
+    otro = SimpleNamespace(original_name="Otro.pdf", form_code="R-GA001")
+    oferta = f"Debes radicarlo.\n\n{pb.form_offer([fm.display_name(semestre)])}"
+
+    assert fm.offered_in([semestre, otro], oferta) == [semestre]
+
+
+@pytest.mark.parametrize("mensaje", ["sí", "Si porfa", "dale", "claro que sí", "ok", "pásamelo"])
+def test_reconoce_la_aceptacion(mensaje):
+    assert pb.is_affirmative(mensaje)
+
+
+@pytest.mark.parametrize("mensaje", ["no gracias", "sí, pero ¿cómo cancelo solo un curso y no todo el semestre?", "¿Quién es el rector?"])
+def test_no_toma_por_aceptacion_otra_cosa(mensaje):
+    assert not pb.is_affirmative(mensaje)
+
+
+def test_pedir_el_formato_directamente():
+    assert pb.asks_for_form("Pásame el formato de cancelación")
+    assert not pb.asks_for_form("¿Cómo cancelo el semestre?")

@@ -82,6 +82,9 @@ export class DocumentsComponent {
           descriptionLabel: 'Para qué sirve el formato',
           descriptionHint: 'Ej.: Formato para solicitar la cancelación del semestre completo. Se ofrece cuando la pregunta se parece a esta descripción.',
           formCardHint: 'Formato descargable: no se indexa. El quiosco lo ofrece con un QR cuando la pregunta encaja con:',
+          codeLabel: 'Código del formato (opcional)',
+          codeHint: 'Ej.: R-GA004. Si la guía cita este código para un trámite, se ofrece este formato. Vacío al subir: se lee del PDF.',
+          codeBadge: 'Código',
           edit: 'Renombrar documento',
           remove: 'Eliminar documento',
           empty: 'Todavía no hay documentos. Sube un PDF para empezar a construir la biblioteca.',
@@ -156,6 +159,9 @@ export class DocumentsComponent {
           descriptionLabel: 'What the form is for',
           descriptionHint: 'E.g. Form to request cancelling the whole semester. It is offered when the question resembles this description.',
           formCardHint: 'Downloadable form: not indexed. The kiosk offers it with a QR code when the question matches:',
+          codeLabel: 'Form code (optional)',
+          codeHint: 'E.g. R-GA004. If the guide cites this code for a procedure, this form is offered. Left empty on upload: read from the PDF.',
+          codeBadge: 'Code',
           edit: 'Rename document',
           remove: 'Delete document',
           empty: 'No documents yet. Upload a PDF to start building the library.',
@@ -249,9 +255,11 @@ export class DocumentsComponent {
   uploadName = '';
   uploadKind: DocumentKind = 'KNOWLEDGE';
   uploadDescription = '';
+  uploadCode = '';
   editName = '';
   editKind: DocumentKind = 'KNOWLEDGE';
   editDescription = '';
+  editCode = '';
   readonly deleteTarget = signal<DocumentItem | null>(null);
   readonly processTarget = signal<DocumentItem | null>(null);
   readonly processResult = signal<ProcessingResult | null>(null);
@@ -288,13 +296,20 @@ export class DocumentsComponent {
     this.uploadName = '';
     this.uploadKind = 'KNOWLEDGE';
     this.uploadDescription = '';
+    this.uploadCode = '';
     this.dialog
       .open(this.uploadDialog(), { width: '480px' })
       .afterClosed()
       .subscribe((confirmed) => {
         const file = this.uploadFile();
         if (!confirmed || !file) return;
-        this.upload(file, this.uploadName.trim(), this.uploadKind, this.uploadDescription.trim());
+        this.upload(
+          file,
+          this.uploadName.trim(),
+          this.uploadKind,
+          this.uploadDescription.trim(),
+          this.uploadCode.trim(),
+        );
       });
   }
 
@@ -315,6 +330,7 @@ export class DocumentsComponent {
     this.editName = doc.original_name;
     this.editKind = doc.kind;
     this.editDescription = doc.description ?? '';
+    this.editCode = doc.form_code ?? '';
     this.dialog
       .open(this.editDialog(), { width: '520px' })
       .afterClosed()
@@ -326,6 +342,8 @@ export class DocumentsComponent {
         if (name !== doc.original_name) changes.original_name = name;
         if (this.editKind !== doc.kind) changes.kind = this.editKind;
         if (description !== (doc.description ?? '')) changes.description = description || null;
+        const code = this.editCode.trim();
+        if (code !== (doc.form_code ?? '')) changes.form_code = code || null;
         if (Object.keys(changes).length === 0) return;
         this.busy.set(true);
         this.service.update(doc.id, changes).subscribe({
@@ -426,9 +444,15 @@ export class DocumentsComponent {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  private upload(file: File, visibleName: string, kind: DocumentKind, description: string): void {
+  private upload(
+    file: File,
+    visibleName: string,
+    kind: DocumentKind,
+    description: string,
+    formCode: string,
+  ): void {
     this.busy.set(true);
-    this.service.upload(file, kind, description).subscribe({
+    this.service.upload(file, kind, description, formCode).subscribe({
       next: (created) => {
         if (visibleName && visibleName !== created.original_name) {
           // Nombre visible personalizado desde el dialogo de subida.

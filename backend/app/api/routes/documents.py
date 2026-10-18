@@ -37,10 +37,11 @@ def create_document(
     file: UploadFile = File(...),
     kind: DocumentKind = Form(DocumentKind.KNOWLEDGE),
     description: str | None = Form(None),
+    form_code: str | None = Form(None),
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     try:
-        return service.create_document(db, file, kind, description)
+        return service.create_document(db, file, kind, description, form_code)
     except InvalidDocumentError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 

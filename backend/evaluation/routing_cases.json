@@ -37,6 +37,8 @@
     {"message": "¿Qué nota necesito para aprobar?", "expected": "institutional"},
     {"message": "¿Puedo habilitar si saqué menos de tres?", "expected": "institutional"},
     {"message": "¿Cómo cancelo el semestre?", "expected": "institutional"},
+    {"message": "Quiero agregar una materia", "expected": "institutional"},
+    {"message": "¿Qué es la matrícula académica?", "expected": "institutional"},
 
     {"message": "¿Qué es un crédito académico?", "expected": "general"},
     {"message": "¿Cómo estudio mejor para un parcial?", "expected": "general"},

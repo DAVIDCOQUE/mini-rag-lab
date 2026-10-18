@@ -30,6 +30,7 @@ class DocumentResponse(BaseModel):
     status: DocumentStatus
     kind: DocumentKind
     description: str | None
+    form_code: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -41,3 +42,4 @@ class DocumentUpdate(BaseModel):
     status: DocumentStatus | None = None
     kind: DocumentKind | None = None
     description: str | None = None
+    form_code: str | None = None

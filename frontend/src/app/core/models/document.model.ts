@@ -16,6 +16,8 @@ export interface DocumentItem {
   kind: DocumentKind;
   // Para que sirve el formato; con ella se decide cuando ofrecerlo.
   description: string | null;
+  // Codigo impreso en el formato (p. ej. R-GA004); opcional.
+  form_code: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +27,7 @@ export interface DocumentUpdate {
   status?: DocumentStatus;
   kind?: DocumentKind;
   description?: string | null;
+  form_code?: string | null;
 }
 
 export interface ChunkResult {

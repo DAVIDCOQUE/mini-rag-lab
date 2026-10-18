@@ -173,10 +173,25 @@ En el mantenedor hay dos tipos de documento:
 - **Formatos** (por ejemplo, el de cancelación de semestre): el asistente no los
   lee. Se ofrecen para descargar cuando la pregunta es sobre su trámite.
 
-Cuando la pregunta corresponde a un trámite con formato, `downloads` trae su enlace
-(como mucho 3) y `answer` termina con *"Puedes descargar el formato escaneando el
-código QR."*. Si ningún formato encaja exactamente, `downloads` viene vacío: el
-servidor prefiere no ofrecer nada antes que un formato de otro trámite.
+El formato **se ofrece y solo se entrega si el estudiante acepta**. Todo lo resuelve el
+servidor con el historial; Unity no tiene que detectar nada:
+
+```
+Estudiante: ¿Cómo cancelo el semestre?
+Sara:       Para cancelar el semestre debes… ¿Quieres el formato R-GA004 (…) para descargarlo?
+            → downloads: []                      (solo la pregunta, sin QR)
+Estudiante: sí
+Sara:       Escanea el código QR para descargar el formato.
+            → downloads: [ { …, qr_url } ]       (aquí se muestra el QR)
+```
+
+- Si el estudiante pide el formato directamente ("pásame el formato de cancelación"),
+  se entrega en esa misma respuesta.
+- Si responde "no", no llega ningún QR.
+- Si ningún formato encaja exactamente con el trámite, ni se ofrece: el servidor
+  prefiere no ofrecer nada antes que un formato de otro trámite.
+
+Por eso, **mostrar QR solo cuando `downloads` no viene vacío**, nunca por el texto.
 
 Para cada elemento de `downloads`:
 

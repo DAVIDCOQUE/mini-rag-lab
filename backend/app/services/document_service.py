@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 from collections.abc import Sequence
 from pathlib import Path
@@ -42,6 +43,7 @@ def create_document(
     file: UploadFile,
     kind: DocumentKind = DocumentKind.KNOWLEDGE,
     description: str | None = None,
+    form_code: str | None = None,
 ) -> Document:
     """Valida el PDF, lo guarda en disco con nombre UUID y registra el documento."""
     description = _clean_description(kind, description)
@@ -72,6 +74,8 @@ def create_document(
         status="PENDING",
         kind=kind.value,
         description=description,
+        # Sin codigo indicado se intenta leer del propio PDF.
+        form_code=_clean_code(form_code) or (_extract_code(destination) if kind is DocumentKind.FORM else None),
     )
     document = repository.create(db, document)
     logger.info("Documento creado: %s (%s)", document.original_name, document.id)
@@ -96,6 +100,7 @@ def update_document(db: Session, document_id: uuid.UUID, payload: DocumentUpdate
     for field, value in data.items():
         setattr(document, field, value.value if hasattr(value, "value") else value)
     document.description = _clean_description(DocumentKind(document.kind), document.description)
+    document.form_code = _clean_code(document.form_code) if document.kind == DocumentKind.FORM.value else None
 
     if document.kind != previous_kind:
         # Un documento que pasa a formato no puede seguir en la busqueda. Aqui el borrado
@@ -112,6 +117,29 @@ def update_document(db: Session, document_id: uuid.UUID, payload: DocumentUpdate
         # informacion que venia de formato aun no tiene fragmentos.
         document.status = "PENDING"
     return repository.update(db, document)
+
+
+# "CODIGO: R-GA004" en la cabecera de los formatos institucionales.
+_CODE_IN_PDF = re.compile(r"C[OÓ]DIGO\s*:?\s*([A-Z]{1,6}(?:-[A-Z]{1,6})?-?\s?\d{2,5})")
+
+
+def _extract_code(path: Path) -> str | None:
+    """Codigo impreso en el formato, o None si no trae (no todos lo tienen)."""
+    try:
+        import fitz
+
+        with fitz.open(path) as pdf:
+            text = " ".join(" ".join(page.get_text() for page in pdf).split()).upper()
+    except Exception as exc:
+        logger.warning("No se pudo leer el codigo del formato %s: %s", path, exc)
+        return None
+    match = _CODE_IN_PDF.search(text)
+    return _clean_code(match.group(1)) if match else None
+
+
+def _clean_code(code: str | None) -> str | None:
+    text = " ".join((code or "").split()).upper()
+    return text or None
 
 
 def _clean_description(kind: DocumentKind, description: str | None) -> str | None:

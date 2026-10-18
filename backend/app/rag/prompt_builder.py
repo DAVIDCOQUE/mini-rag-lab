@@ -57,10 +57,16 @@ algo general sobre educacion o vida academica que no depende de esta institucion
 concreto.
 
 Responde en espanol con tu propio conocimiento, de forma breve y clara: dos o tres \
-frases bastan. Cierra avisando de que es informacion general y no proviene de los \
-documentos de la institucion.
+frases bastan. No anadas avisos sobre el origen de la informacion: el sistema los pone.
 Si la pregunta necesitara un dato propio de la universidad para responderse bien, dilo en \
 lugar de inventarlo."""
+
+# Respaldo cuando la guia no cubre un concepto academico general. El aviso lo pone el
+# codigo: el modelo lo omitia a veces.
+CONCEPT_FALLBACK_PROMPT = """Eres el asistente academico de la universidad. Explica en espanol, \
+en dos o tres frases claras, el concepto academico que pregunta el estudiante. No menciones \
+datos de ninguna universidad concreta (cifras, normas, lugares ni personas)."""
+GENERAL_NOTICE = "Esto es información general: no aparece en los documentos de la universidad."
 
 # Sin LLM: el camino fuera de ambito no merece una generacion.
 OFF_TOPIC_MESSAGE = (
@@ -87,6 +93,59 @@ def asks_about_creator(question: str) -> bool:
     decomposed = unicodedata.normalize("NFD", question.lower())
     text = "".join(c for c in decomposed if not unicodedata.combining(c))
     return bool(_CREATOR_QUESTION.search(text))
+
+
+# Quien, donde, cuando, cuanto, a que hora o un contacto piden un dato concreto, nunca un
+# concepto. El router a veces marcaba "¿quien es el rector?" como concepto y se respondia
+# con la definicion del cargo.
+_SPECIFIC_DATA_QUESTION = re.compile(
+    r"\b(quien|quienes|donde|cuando|cuanto|cuanta|cuantos|cuantas|horario|hora|telefono|celular|correo|extension)\b"
+)
+
+
+def asks_specific_data(question: str) -> bool:
+    """Si el mensaje pide un dato concreto (persona, lugar, fecha, costo, contacto)."""
+    decomposed = unicodedata.normalize("NFD", question.lower())
+    text = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return bool(_SPECIFIC_DATA_QUESTION.search(text))
+
+
+# El formato se ofrece y solo se entrega si el estudiante acepta o lo pide. Textos fijos:
+# la oferta lleva el nombre exacto del formato para reconocerlo en el turno siguiente.
+FORM_DELIVERY_MESSAGE = "Escanea el código QR para descargar el formato."
+FORMS_DELIVERY_MESSAGE = "Escanea los códigos QR para descargar los formatos."
+
+_AFFIRMATIVE = re.compile(
+    r"^\W*(si|sip|claro|dale|ok|okay|bueno|listo|perfecto|obvio|de una|por favor|porfa|"
+    r"me lo|pasamelo|mandamelo|enviamelo|muestramelo|quiero|lo quiero|va|vale)\b"
+)
+_FORM_REQUEST = re.compile(r"\bformatos?\b")
+
+
+def form_offer(names: list[str]) -> str:
+    if len(names) == 1:
+        return f"¿Quieres el formato {names[0]} para descargarlo?"
+    return f"¿Quieres los formatos {', '.join(names[:-1])} y {names[-1]} para descargarlos?"
+
+
+def form_delivery(count: int) -> str:
+    return FORM_DELIVERY_MESSAGE if count == 1 else FORMS_DELIVERY_MESSAGE
+
+
+def is_affirmative(message: str) -> bool:
+    """Respuesta corta de aceptacion ("si", "dale", "si porfa"). Una frase larga es otra pregunta."""
+    text = _plain(message)
+    return len(text.split()) <= 6 and bool(_AFFIRMATIVE.search(text))
+
+
+def asks_for_form(message: str) -> bool:
+    """El estudiante pide el formato directamente: se entrega sin preguntar."""
+    return bool(_FORM_REQUEST.search(_plain(message)))
+
+
+def _plain(text: str) -> str:
+    decomposed = unicodedata.normalize("NFD", text.lower())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
 
 
 # Identidad generica a proposito: el nombre de la institucion o del asistente no va en el

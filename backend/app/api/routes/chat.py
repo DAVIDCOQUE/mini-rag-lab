@@ -18,8 +18,6 @@ logger = logging.getLogger("mini_rag_lab")
 
 router = APIRouter(tags=["chat"])
 
-# Fija y no generada: el modelo no sabe que formatos existen y podria inventar uno.
-FORM_OFFER_MESSAGE = "Puedes descargar el formato escaneando el código QR."
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -58,9 +56,10 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         for point in outcome.points
     ]
 
-    downloads = _downloads(outcome.forms)
-    answer = f"{outcome.answer}\n\n{FORM_OFFER_MESSAGE}" if downloads else outcome.answer
-    return ChatResponse(question=request.message, answer=answer, sources=sources, downloads=downloads)
+    # outcome.forms son solo los formatos entregados: los ofrecidos van en el texto.
+    return ChatResponse(
+        question=request.message, answer=outcome.answer, sources=sources, downloads=_downloads(outcome.forms)
+    )
 
 
 def _resolve_documents(db: Session, points: Sequence[ScoredPoint]) -> dict[str, Document | None]:

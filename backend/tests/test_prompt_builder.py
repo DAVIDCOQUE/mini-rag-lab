@@ -145,3 +145,16 @@ def test_reconoce_la_pregunta_por_quien_creo_al_asistente(mensaje):
 )
 def test_otras_preguntas_no_activan_la_respuesta_del_autor(mensaje):
     assert not prompt_builder.asks_about_creator(mensaje)
+
+
+@pytest.mark.parametrize(
+    "mensaje",
+    ["¿Quién es el rector?", "¿Dónde queda la biblioteca?", "¿Cuánto cuesta la matrícula?", "¿A qué hora abre registro?", "¿Cuál es el teléfono de bienestar?"],
+)
+def test_reconoce_las_preguntas_por_un_dato_concreto(mensaje):
+    assert prompt_builder.asks_specific_data(mensaje)
+
+
+@pytest.mark.parametrize("mensaje", ["¿Qué es un crédito académico?", "¿Qué es el promedio ponderado?", "Explícame qué es una tesis"])
+def test_un_concepto_no_es_un_dato_concreto(mensaje):
+    assert not prompt_builder.asks_specific_data(mensaje)

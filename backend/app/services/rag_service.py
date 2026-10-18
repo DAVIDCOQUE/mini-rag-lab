@@ -9,20 +9,27 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.document import Document
 from app.rag import llm_router
-from app.rag.form_matcher import FormMatcher
+from app.rag.form_matcher import FormMatcher, display_name, offered_in
 from app.rag.llm_service import LLMError, chat
 from app.rag.prompt_builder import (
     FIRST_TURN_GREETING,
+    GENERAL_NOTICE,
     GENERAL_PROMPT,
     NO_ANSWER_MESSAGE,
+    CONCEPT_FALLBACK_PROMPT,
     CREATOR_MESSAGE,
     OFF_TOPIC_MESSAGE,
     SMALLTALK_PROMPT,
     asks_about_creator,
+    asks_for_form,
+    asks_specific_data,
     Message,
     build_context_message,
     build_messages,
     estimate_tokens,
+    form_delivery,
+    form_offer,
+    is_affirmative,
     fit_history,
     institutional_instructions,
     with_turn_instruction,
@@ -30,6 +37,7 @@ from app.rag.prompt_builder import (
 from app.rag.query_router import QueryRouter, Route, RouteDecision, expand_follow_up
 from app.rag.retriever import Retriever
 from app.schemas.chat import ChatTurn
+from app.repositories import document_repository
 from app.services import prompt_service
 
 logger = logging.getLogger("mini_rag_lab")
@@ -117,6 +125,17 @@ def answer_question(
     """
     top_k = limit or settings.CHAT_TOP_K
 
+    # "Si" a un formato ofrecido: se entrega sin pasar por el router, que veria un
+    # mensaje suelto sin tema.
+    accepted = _accepted_offer(db, question, history)
+    if accepted:
+        return RagOutcome(
+            answer=form_delivery(len(accepted)),
+            route=Route.SMALLTALK,
+            router="offer",
+            forms=[(form, 1.0) for form in accepted],
+        )
+
     if not settings.ROUTER_ENABLED:
         decision = RouteDecision(route=Route.INSTITUTIONAL, search_query=question, router="disabled")
         return _institutional(db, question, top_k, prompt_code, decision, None, history)
@@ -143,6 +162,9 @@ def answer_question(
     system_prompt = SMALLTALK_PROMPT if decision.route is Route.SMALLTALK else GENERAL_PROMPT
     generation_started = time.perf_counter()
     answer = chat(_conversation(system_prompt, question, history))
+    if decision.route is Route.GENERAL:
+        # Aviso fijo: pedido en el prompt, el modelo lo omitia a veces.
+        answer = f"{answer}\n\n{GENERAL_NOTICE}"
     return RagOutcome(
         answer=answer,
         generation_ms=round((time.perf_counter() - generation_started) * 1000, 1),
@@ -172,8 +194,6 @@ def _institutional(
 
     system_prompt, resolved_code = prompt_service.resolve_prompt(db, prompt_code)
     trace = _trace(decision, routing_ms)
-    # Aunque no haya informacion para responder, el formato puede servir igual.
-    forms = form_matcher.match(db, decision.search_query, vector)
 
     # Corte de calidad: sin contexto suficiente no se gasta una llamada al modelo ni se
     # le da pie a inventar sobre chunks irrelevantes.
@@ -184,13 +204,18 @@ def _institutional(
             len(points),
             points[0].score if points else None,
         )
+        answer = _with_greeting(_without_documents(decision, question, history), history)
+        # Sin informacion no se ofrece formato: solo se entrega si lo pidio expresamente.
+        # Sin respuesta tampoco hay codigo citado: decide la descripcion.
+        forms = form_matcher.match(db, decision.search_query, vector) if asks_for_form(question) else []
+        answer, delivered = _present_forms(answer, forms, question)
         return RagOutcome(
-            answer=_with_greeting(NO_ANSWER_MESSAGE, history),
+            answer=answer,
             points=points,
             prompt_code=resolved_code,
             generation_skipped=True,
             retrieval_ms=round(retrieval_ms, 1),
-            forms=forms,
+            forms=delivered,
             **trace,
         )
 
@@ -204,7 +229,14 @@ def _institutional(
         history,
         llm_greets=False,
     )
-    answer = _with_greeting(chat(messages), history)
+    answer = chat(messages)
+    forms = []
+    # El modelo tambien puede concluir que el contexto no responde: mismo respaldo.
+    if NO_ANSWER_MESSAGE in answer:
+        answer = _without_documents(decision, question, history)
+    else:
+        forms = form_matcher.match(db, decision.search_query, vector, answer=answer, context="\n".join(chunks))
+    answer, delivered = _present_forms(_with_greeting(answer, history), forms, question)
     generation_ms = (time.perf_counter() - generation_started) * 1000
     logger.info(
         "Respuesta del modelo '%s' con el prompt '%s' en %.2fs",
@@ -219,9 +251,43 @@ def _institutional(
         prompt_code=resolved_code,
         retrieval_ms=round(retrieval_ms, 1),
         generation_ms=round(generation_ms, 1),
-        forms=forms,
+        forms=delivered,
         **trace,
     )
+
+
+def _present_forms(
+    answer: str, forms: list[tuple[Document, float]], question: str
+) -> tuple[str, list[tuple[Document, float]]]:
+    """Ofrece los formatos al final de la respuesta, o los entrega si el estudiante los pidio.
+
+    Devuelve el texto y los formatos entregados: solo esos llevan QR.
+    """
+    if not forms:
+        return answer, []
+    if asks_for_form(question):
+        return f"{answer}\n\n{form_delivery(len(forms))}", forms
+    names = [display_name(form) for form, _ in forms]
+    return f"{answer}\n\n{form_offer(names)}", []
+
+
+def _accepted_offer(db: Session, question: str, history: Sequence[ChatTurn] | None) -> list[Document]:
+    """Formatos que el asistente ofrecio en su ultimo mensaje, si ahora el estudiante acepta."""
+    if not history or history[-1].role != "assistant" or not is_affirmative(question):
+        return []
+    return offered_in(document_repository.list_forms(db), history[-1].content)
+
+
+def _without_documents(decision: RouteDecision, question: str, history: Sequence[ChatTurn] | None) -> str:
+    """Respuesta cuando los documentos no cubren la pregunta.
+
+    Un concepto general se explica con aviso fijo. Un dato de la universidad nunca se
+    genera: en las pruebas el modelo invento la ubicacion de la Secretaria Academica.
+    """
+    if not (settings.CHAT_CONCEPT_FALLBACK and decision.is_concept) or asks_specific_data(question):
+        return NO_ANSWER_MESSAGE
+    messages = _conversation(CONCEPT_FALLBACK_PROMPT, question, history, llm_greets=False)
+    return f"{chat(messages)}\n\n{GENERAL_NOTICE}"
 
 
 def _trace(decision: RouteDecision, routing_ms: float | None) -> dict:

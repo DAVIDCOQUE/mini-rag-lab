@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     # RERANK_ENABLED este umbral deja de tener sentido (la escala cambia a similitud
     # coseno) y deberia ajustarse o dejar el filtro inefectivo a proposito.
     CHAT_MIN_SCORE: float = -1.5
+    # Si la guia no cubre la pregunta y es un concepto general, responder de memoria con
+    # aviso. Un dato de la universidad (lugar, persona, costo) nunca: se inventaba.
+    CHAT_CONCEPT_FALLBACK: bool = True
     # Tokens maximos de historial que viajan al LLM. Lo que cuesta tiempo es lo enviado
     # (~1900 tokens/s de lectura en una RTX 3060), no el tamano de la ventana.
     CHAT_HISTORY_MAX_TOKENS: int = 6000

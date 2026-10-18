@@ -28,6 +28,9 @@ class Document(Base):
     # Para que sirve el formato, escrito por el administrador. Es lo que se compara con
     # la pregunta para decidir si ofrecerlo: el PDF de un formato no dice para que es.
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Codigo impreso en el formato (p. ej. R-GA004). Cuando la guia lo cita para un tramite,
+    # se ofrece este formato sin depender del parecido de la descripcion. Opcional.
+    form_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
