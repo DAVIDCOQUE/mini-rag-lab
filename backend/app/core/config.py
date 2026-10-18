@@ -89,6 +89,20 @@ class Settings(BaseSettings):
     STORAGE_DIR: str = "storage"
     MAX_UPLOAD_MB: int = 20
 
+    # --- Descarga de formatos por QR ---
+    # Direccion con la que el celular del estudiante llega al backend: es la que va
+    # dentro del QR. "localhost" solo sirve para probar desde la misma maquina.
+    PUBLIC_BASE_URL: str = "http://localhost:8000"
+    DOWNLOAD_LINK_TTL_MINUTES: int = 15
+    # Similitud coseno entre la pregunta y la descripcion de un formato, calibradas con
+    # evaluation/evaluate_forms.py. Con ROUTER_MODE=llm los embeddings solo preseleccionan
+    # (umbral bajo) y el LLM confirma; sin LLM decide el umbral alto.
+    FORM_CANDIDATE_MIN_SCORE: float = 0.5
+    FORM_MATCH_MIN_SCORE: float = 0.6
+    # Firma de los enlaces. Vacio: se genera uno al arrancar y los enlaces emitidos
+    # dejan de valer al reiniciar, que con 15 minutos de vida no importa.
+    DOWNLOAD_SECRET: str = ""
+
     # --- Procesamiento / chunking ---
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200

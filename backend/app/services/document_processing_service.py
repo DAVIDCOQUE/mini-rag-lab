@@ -9,6 +9,7 @@ from app.models.document import Document
 from app.rag.chunker import Chunker
 from app.rag.indexer import Indexer
 from app.repositories import document_repository
+from app.schemas.document import DocumentKind
 from app.schemas.processing import ChunkResponse, IndexedChunks, IndexResult, ProcessingResult
 from app.services import document_service
 
@@ -21,6 +22,10 @@ class FileMissingError(Exception):
 
 class EmptyDocumentError(Exception):
     """El PDF no contiene texto extraible."""
+
+
+class FormNotIndexableError(Exception):
+    """Los formatos se descargan, no se indexan: el asistente no responde con ellos."""
 
 
 class IndexingError(Exception):
@@ -86,6 +91,8 @@ class DocumentProcessingService:
     def index_document(self, db: Session, document_id: uuid.UUID) -> IndexResult:
         """Pipeline completo: extraer -> trocear -> embeddings -> Qdrant, actualizando status."""
         document = document_service.get_document(db, document_id)
+        if document.kind == DocumentKind.FORM.value:
+            raise FormNotIndexableError("Los formatos no se indexan: se ofrecen para descargar.")
 
         # Errores de contenido se resuelven antes de marcar PROCESSING.
         _, chunks = self._extract_and_chunk(document)

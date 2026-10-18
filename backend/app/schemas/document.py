@@ -12,6 +12,11 @@ class DocumentStatus(str, Enum):
     ERROR = "ERROR"
 
 
+class DocumentKind(str, Enum):
+    KNOWLEDGE = "KNOWLEDGE"  # el asistente responde con el
+    FORM = "FORM"  # formato en blanco que se descarga por QR
+
+
 class DocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,6 +28,8 @@ class DocumentResponse(BaseModel):
     extension: str
     size_bytes: int
     status: DocumentStatus
+    kind: DocumentKind
+    description: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -32,3 +39,5 @@ class DocumentUpdate(BaseModel):
 
     original_name: str | None = None
     status: DocumentStatus | None = None
+    kind: DocumentKind | None = None
+    description: str | None = None

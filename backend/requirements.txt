@@ -13,3 +13,4 @@ pymupdf==1.28.0
 langchain-text-splitters==1.1.2
 fastembed==0.8.0
 easyocr==1.7.2
+segno==1.6.6

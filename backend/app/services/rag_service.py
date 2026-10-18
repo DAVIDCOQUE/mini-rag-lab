@@ -7,7 +7,9 @@ from qdrant_client.models import ScoredPoint
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.document import Document
 from app.rag import llm_router
+from app.rag.form_matcher import FormMatcher
 from app.rag.llm_service import LLMError, chat
 from app.rag.prompt_builder import (
     FIRST_TURN_GREETING,
@@ -32,6 +34,7 @@ logger = logging.getLogger("mini_rag_lab")
 
 retriever = Retriever()
 router = QueryRouter()
+form_matcher = FormMatcher()
 
 # Ventana que se deja libre para la respuesta del modelo al repartir el contexto.
 ANSWER_RESERVE_TOKENS = 1024
@@ -73,6 +76,9 @@ class RagOutcome:
     router: str | None = None
     route_reason: str | None = None
     search_query: str | None = None
+    # Formatos descargables que encajan con la pregunta, con su similitud. Van aparte
+    # de points: el asistente nunca responde con el contenido de un formato.
+    forms: list[tuple[Document, float]] = field(default_factory=list)
 
 
 def route_query(
@@ -154,11 +160,15 @@ def _institutional(
     responde a la original: el historial le da el resto del contexto.
     """
     started = time.perf_counter()
-    points = retriever.search(decision.search_query, top_k, vector=decision.vector)
+    # El mismo vector sirve para buscar y para elegir formato: se calcula una sola vez.
+    vector = decision.vector or retriever.embedding_service.embed_query(decision.search_query)
+    points = retriever.search(decision.search_query, top_k, vector=vector)
     retrieval_ms = (time.perf_counter() - started) * 1000
 
     system_prompt, resolved_code = prompt_service.resolve_prompt(db, prompt_code)
     trace = _trace(decision, routing_ms)
+    # Aunque no haya informacion para responder, el formato puede servir igual.
+    forms = form_matcher.match(db, decision.search_query, vector)
 
     # Corte de calidad: sin contexto suficiente no se gasta una llamada al modelo ni se
     # le da pie a inventar sobre chunks irrelevantes.
@@ -175,6 +185,7 @@ def _institutional(
             prompt_code=resolved_code,
             generation_skipped=True,
             retrieval_ms=round(retrieval_ms, 1),
+            forms=forms,
             **trace,
         )
 
@@ -203,6 +214,7 @@ def _institutional(
         prompt_code=resolved_code,
         retrieval_ms=round(retrieval_ms, 1),
         generation_ms=round(generation_ms, 1),
+        forms=forms,
         **trace,
     )
 

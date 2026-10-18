@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.document import Document
 from app.repositories import document_repository as repository
-from app.schemas.document import DocumentUpdate
+from app.schemas.document import DocumentKind, DocumentUpdate
 
 logger = logging.getLogger("mini_rag_lab")
 
@@ -26,6 +26,10 @@ class InvalidDocumentError(Exception):
     """El archivo no cumple las reglas de subida (tipo o tamano)."""
 
 
+class VectorCleanupError(Exception):
+    """No se pudieron borrar los vectores de un documento que pasa a ser formato."""
+
+
 def _originals_dir() -> Path:
     """Ruta storage/documents/originals, creada si no existe."""
     path = Path(settings.STORAGE_DIR) / "documents" / "originals"
@@ -33,8 +37,14 @@ def _originals_dir() -> Path:
     return path
 
 
-def create_document(db: Session, file: UploadFile) -> Document:
+def create_document(
+    db: Session,
+    file: UploadFile,
+    kind: DocumentKind = DocumentKind.KNOWLEDGE,
+    description: str | None = None,
+) -> Document:
     """Valida el PDF, lo guarda en disco con nombre UUID y registra el documento."""
+    description = _clean_description(kind, description)
     filename = file.filename or ""
     extension = Path(filename).suffix.lower().lstrip(".")
     if extension != ALLOWED_EXTENSION:
@@ -60,6 +70,8 @@ def create_document(db: Session, file: UploadFile) -> Document:
         extension=ALLOWED_EXTENSION,
         size_bytes=len(content),
         status="PENDING",
+        kind=kind.value,
+        description=description,
     )
     document = repository.create(db, document)
     logger.info("Documento creado: %s (%s)", document.original_name, document.id)
@@ -80,9 +92,34 @@ def get_document(db: Session, document_id: uuid.UUID) -> Document:
 def update_document(db: Session, document_id: uuid.UUID, payload: DocumentUpdate) -> Document:
     document = get_document(db, document_id)
     data = payload.model_dump(exclude_unset=True)
+    previous_kind = document.kind
     for field, value in data.items():
         setattr(document, field, value.value if hasattr(value, "value") else value)
+    document.description = _clean_description(DocumentKind(document.kind), document.description)
+
+    if document.kind != previous_kind:
+        # Un documento que pasa a formato no puede seguir en la busqueda. Aqui el borrado
+        # no es best-effort: si Qdrant falla, el cambio no se guarda.
+        if document.kind == DocumentKind.FORM.value:
+            try:
+                from app.rag.qdrant_service import QdrantService
+
+                QdrantService().delete_by_document(document.id)
+            except Exception as exc:
+                db.rollback()
+                raise VectorCleanupError("No se pudieron retirar sus fragmentos de Qdrant.") from exc
+        # En ambos sentidos queda sin indexar: un formato nunca se indexa, y uno de
+        # informacion que venia de formato aun no tiene fragmentos.
+        document.status = "PENDING"
     return repository.update(db, document)
+
+
+def _clean_description(kind: DocumentKind, description: str | None) -> str | None:
+    """Los formatos exigen descripcion: es lo unico con lo que se decide ofrecerlos."""
+    text = (description or "").strip() or None
+    if kind is DocumentKind.FORM and not text:
+        raise InvalidDocumentError("Un formato necesita una descripción de para qué sirve.")
+    return text
 
 
 def delete_document(db: Session, document_id: uuid.UUID) -> None:
