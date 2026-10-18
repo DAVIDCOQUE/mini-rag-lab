@@ -15,8 +15,10 @@ from app.rag.prompt_builder import (
     FIRST_TURN_GREETING,
     GENERAL_PROMPT,
     NO_ANSWER_MESSAGE,
+    CREATOR_MESSAGE,
     OFF_TOPIC_MESSAGE,
     SMALLTALK_PROMPT,
+    asks_about_creator,
     Message,
     build_context_message,
     build_messages,
@@ -134,6 +136,9 @@ def answer_question(
     # Fuera de ambito no merece una generacion: la respuesta no depende del mensaje.
     if decision.route is Route.OFF_TOPIC:
         return RagOutcome(answer=_with_greeting(OFF_TOPIC_MESSAGE, history), **trace)
+
+    if decision.route is Route.SMALLTALK and asks_about_creator(question):
+        return RagOutcome(answer=_with_greeting(CREATOR_MESSAGE, history), **trace)
 
     system_prompt = SMALLTALK_PROMPT if decision.route is Route.SMALLTALK else GENERAL_PROMPT
     generation_started = time.perf_counter()

@@ -1,4 +1,4 @@
-# Mini RAG Lab — Backend (FastAPI)
+# Sara — Backend (FastAPI)
 
 ## Requisitos
 - Python 3.12 (recomendado). El venv incluido usa la version disponible en la maquina.

@@ -1,3 +1,5 @@
+import pytest
+
 from app.rag import prompt_builder
 from app.schemas.chat import ChatTurn
 
@@ -127,3 +129,19 @@ def test_sin_saludo_del_modelo_el_primer_turno_pide_no_saludar():
     sistema = prompt_builder.with_turn_instruction("sistema", [], llm_greets=False)
 
     assert sistema.endswith(prompt_builder.NO_GREETING_INSTRUCTION)
+
+
+@pytest.mark.parametrize(
+    "mensaje",
+    ["¿Quién te creó?", "quien te desarrollo", "¿Quiénes te programaron?", "¿Quién es tu creador?", "QUIÉN TE HIZO"],
+)
+def test_reconoce_la_pregunta_por_quien_creo_al_asistente(mensaje):
+    assert prompt_builder.asks_about_creator(mensaje)
+
+
+@pytest.mark.parametrize(
+    "mensaje",
+    ["¿Quién eres?", "¿Quién es el secretario general?", "¿Quién creó la política de bienestar?" , "Hola"],
+)
+def test_otras_preguntas_no_activan_la_respuesta_del_autor(mensaje):
+    assert not prompt_builder.asks_about_creator(mensaje)

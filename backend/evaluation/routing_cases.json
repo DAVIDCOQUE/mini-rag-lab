@@ -53,6 +53,8 @@
     {"message": "Chao, que estés bien", "expected": "smalltalk"},
     {"message": "¿Cómo estás?", "expected": "smalltalk"},
     {"message": "¿Quién eres?", "expected": "smalltalk"},
+    {"message": "¿Quién te creó?", "expected": "smalltalk"},
+    {"message": "¿Quién te desarrolló?", "expected": "smalltalk"},
     {"message": "¿Cómo me llamo?", "history": "presentacion", "expected": "smalltalk"},
     {"message": "¿Qué estudio yo?", "history": "presentacion", "expected": "smalltalk"},
     {"message": "¿Qué te pregunté antes?", "history": "matricula", "expected": "smalltalk"},

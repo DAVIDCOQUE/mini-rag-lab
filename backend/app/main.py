@@ -28,6 +28,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
+    contact={"name": "@DAVIDCOQUE", "url": "https://github.com/DAVIDCOQUE"},
     debug=settings.DEBUG,
     lifespan=lifespan,
 )

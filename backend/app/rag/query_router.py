@@ -80,6 +80,7 @@ ROUTE_EXAMPLES: dict[Route, list[str]] = {
         "hasta luego",
         "como estas",
         "quien eres",
+        "quien te creo o te programo",
         "como me llamo",
         "que te pregunte antes",
         "recuerdas lo que te dije",

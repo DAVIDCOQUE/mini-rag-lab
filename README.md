@@ -1,6 +1,12 @@
-# Mini RAG Lab
+# Sara
 
-Laboratorio de aprendizaje para construir un sistema RAG paso a paso.
+Asistente académico para el quiosco de la universidad. Responde con los documentos
+institucionales (RAG), recuerda la conversación mientras el estudiante está frente al
+quiosco y ofrece los formatos de cada trámite para descargarlos con un código QR.
+
+El avatar del quiosco se construye en Unity y habla con este backend (ver
+[docs/unity-api.md](docs/unity-api.md)). Este repositorio contiene el backend y el
+mantenedor web, donde se cargan los documentos, se editan los prompts y se prueba a Sara.
 
 El circuito completo **ya funciona**: subir un PDF, extraer su texto con PyMuPDF, trocearlo
 respetando frases, embeberlo con Ollama (`bge-m3`), guardarlo en Qdrant, recuperarlo con
@@ -160,7 +166,7 @@ servicio está caído, así que cada campo es `connected` o `disconnected`:
 ```json
 {
   "status": "ok",
-  "service": "Mini RAG Lab",
+  "service": "Sara",
   "version": "1.0.0",
   "database": "connected",
   "qdrant": "connected",
@@ -475,3 +481,7 @@ La extracción de código es determinista (AST) y no gasta tokens; solo la prosa
 
 `.graphifyignore` excluye `.agents/` y `.claude/`: la documentación de las skills no es
 parte del proyecto, y dejarla dentro gastaba tokens e inventaba comunidades ajenas al código.
+
+---
+
+Proyecto de estudiantes de la Universidad Santiago de Cali. Backend: [@DAVIDCOQUE](https://github.com/DAVIDCOQUE).

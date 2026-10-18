@@ -19,7 +19,7 @@ cada universidad las fija en su reglamento. Y los seguimientos de un tema instit
 ("¿y cuanto cuesta?").
 - general: tema academico general que no depende de esta universidad.
 - conversation: SOLO saludos, despedidas, agradecimientos o preguntas sobre la propia charla \
-(su nombre, que dijo antes).
+(su nombre, que dijo antes) o sobre el propio asistente (quien es, quien lo creo).
 - off_topic: nada que ver con lo academico ni con la universidad (cocina, deportes, compras, \
 entretenimiento, politica nacional, cultura general, pedir que escribas codigo o tareas).
 El historial solo sirve para entender referencias; clasifica unicamente el mensaje.

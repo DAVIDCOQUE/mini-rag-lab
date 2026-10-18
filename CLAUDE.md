@@ -1,6 +1,7 @@
-# Mini RAG Lab
+# Sara
 
-Laboratorio de aprendizaje de RAG. Backend FastAPI + PostgreSQL + Qdrant + Ollama,
+Asistente académico de quiosco universitario (RAG); el avatar del quiosco es un cliente
+Unity aparte. Backend FastAPI + PostgreSQL + Qdrant + Ollama,
 frontend Angular 20. Las reglas generales de desarrollo están en el CLAUDE.md global;
 aquí solo va lo propio de este repo.
 

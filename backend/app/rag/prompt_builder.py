@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from collections.abc import Sequence
 
 from app.schemas.chat import ChatTurn
@@ -65,6 +67,26 @@ OFF_TOPIC_MESSAGE = (
     "Solo puedo ayudarte con los documentos de la institución y con temas académicos. "
     "¿Quieres preguntarme algo sobre eso?"
 )
+
+
+# Respuesta fija y no generada: con el nombre en el prompt, llama3.1:8b lo atribuia a
+# "equipos de investigacion" o confundia al estudiante con el autor.
+CREATOR_MESSAGE = (
+    "Me desarrolló un equipo de estudiantes de la Universidad Santiago de Cali, "
+    "con la colaboración de David Sánchez."
+)
+_CREATOR_QUESTION = re.compile(
+    # Dirigida al asistente ("te", "tu"): "¿quien creo la politica?" es otra pregunta.
+    r"\b(quien|quienes)\s+te\s+(creo|crearon|hizo|hicieron|desarrollo|desarrollaron|programo|programaron|diseno)\b"
+    r"|\btu\s+(creador|creadora|desarrollador|desarrolladora|autor|autora)\b"
+)
+
+
+def asks_about_creator(question: str) -> bool:
+    """Si el mensaje pregunta quien creo al asistente, sin acentos ni mayusculas."""
+    decomposed = unicodedata.normalize("NFD", question.lower())
+    text = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return bool(_CREATOR_QUESTION.search(text))
 
 
 # Identidad generica a proposito: el nombre de la institucion o del asistente no va en el
