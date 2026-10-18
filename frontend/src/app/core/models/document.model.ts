@@ -1,5 +1,9 @@
 export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'INDEXED' | 'ERROR';
 
+// KNOWLEDGE: el asistente responde con el. FORM: formato en blanco que se descarga
+// por QR y nunca se indexa.
+export type DocumentKind = 'KNOWLEDGE' | 'FORM';
+
 export interface DocumentItem {
   id: string;
   original_name: string;
@@ -9,6 +13,9 @@ export interface DocumentItem {
   extension: string;
   size_bytes: number;
   status: DocumentStatus;
+  kind: DocumentKind;
+  // Para que sirve el formato; con ella se decide cuando ofrecerlo.
+  description: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -16,6 +23,8 @@ export interface DocumentItem {
 export interface DocumentUpdate {
   original_name?: string;
   status?: DocumentStatus;
+  kind?: DocumentKind;
+  description?: string | null;
 }
 
 export interface ChunkResult {

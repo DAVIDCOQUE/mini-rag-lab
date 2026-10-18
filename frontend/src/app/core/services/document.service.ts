@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   DocumentItem,
+  DocumentKind,
   DocumentUpdate,
   IndexedChunks,
   IndexResult,
@@ -24,9 +25,11 @@ export class DocumentService {
     return this.http.get<DocumentItem>(`${this.endpoint}/${id}`);
   }
 
-  upload(file: File): Observable<DocumentItem> {
+  upload(file: File, kind: DocumentKind = 'KNOWLEDGE', description = ''): Observable<DocumentItem> {
     const form = new FormData();
     form.append('file', file);
+    form.append('kind', kind);
+    if (description) form.append('description', description);
     return this.http.post<DocumentItem>(this.endpoint, form);
   }
 

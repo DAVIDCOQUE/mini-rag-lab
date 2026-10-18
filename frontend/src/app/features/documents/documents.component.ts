@@ -15,11 +15,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import {
   DocumentItem,
+  DocumentKind,
   DocumentStatus,
+  DocumentUpdate,
   IndexedChunks,
   ProcessingResult,
 } from '../../core/models/document.model';
@@ -46,6 +49,7 @@ const STATUS_VARIANTS: Record<DocumentStatus, string> = {
     MatFormFieldModule,
     MatInputModule,
     MatProgressBarModule,
+    MatButtonToggleModule,
   ],
   templateUrl: './documents.component.html',
   styleUrl: './documents.component.scss',
@@ -72,6 +76,12 @@ export class DocumentsComponent {
           process: 'Procesar',
           index: 'Indexar',
           inspect: 'Inspeccionar',
+          kindKnowledge: 'Información',
+          kindForm: 'Formato',
+          kindHint: 'Información: el asistente responde con su contenido. Formato: no se lee, se ofrece para descargar con un QR.',
+          descriptionLabel: 'Para qué sirve el formato',
+          descriptionHint: 'Ej.: Formato para solicitar la cancelación del semestre completo. Se ofrece cuando la pregunta se parece a esta descripción.',
+          formCardHint: 'Formato descargable: no se indexa. El quiosco lo ofrece con un QR cuando la pregunta encaja con:',
           edit: 'Renombrar documento',
           remove: 'Eliminar documento',
           empty: 'Todavía no hay documentos. Sube un PDF para empezar a construir la biblioteca.',
@@ -140,6 +150,12 @@ export class DocumentsComponent {
           process: 'Process',
           index: 'Index',
           inspect: 'Inspect',
+          kindKnowledge: 'Information',
+          kindForm: 'Form',
+          kindHint: 'Information: the assistant answers with its content. Form: never read, offered for download with a QR code.',
+          descriptionLabel: 'What the form is for',
+          descriptionHint: 'E.g. Form to request cancelling the whole semester. It is offered when the question resembles this description.',
+          formCardHint: 'Downloadable form: not indexed. The kiosk offers it with a QR code when the question matches:',
           edit: 'Rename document',
           remove: 'Delete document',
           empty: 'No documents yet. Upload a PDF to start building the library.',
@@ -231,7 +247,11 @@ export class DocumentsComponent {
   // Estado de los dialogos.
   readonly uploadFile = signal<File | null>(null);
   uploadName = '';
+  uploadKind: DocumentKind = 'KNOWLEDGE';
+  uploadDescription = '';
   editName = '';
+  editKind: DocumentKind = 'KNOWLEDGE';
+  editDescription = '';
   readonly deleteTarget = signal<DocumentItem | null>(null);
   readonly processTarget = signal<DocumentItem | null>(null);
   readonly processResult = signal<ProcessingResult | null>(null);
@@ -266,13 +286,15 @@ export class DocumentsComponent {
   openUpload(): void {
     this.uploadFile.set(null);
     this.uploadName = '';
+    this.uploadKind = 'KNOWLEDGE';
+    this.uploadDescription = '';
     this.dialog
       .open(this.uploadDialog(), { width: '480px' })
       .afterClosed()
       .subscribe((confirmed) => {
         const file = this.uploadFile();
         if (!confirmed || !file) return;
-        this.upload(file, this.uploadName.trim());
+        this.upload(file, this.uploadName.trim(), this.uploadKind, this.uploadDescription.trim());
       });
   }
 
@@ -288,21 +310,35 @@ export class DocumentsComponent {
     if (file && !this.uploadName) this.uploadName = file.name;
   }
 
-  // --- Editar (solo nombre visible) ---
+  // --- Editar (nombre visible, tipo y descripcion) ---
   openEdit(doc: DocumentItem): void {
     this.editName = doc.original_name;
+    this.editKind = doc.kind;
+    this.editDescription = doc.description ?? '';
     this.dialog
-      .open(this.editDialog(), { width: '480px' })
+      .open(this.editDialog(), { width: '520px' })
       .afterClosed()
       .subscribe((confirmed) => {
         const name = this.editName.trim();
-        if (!confirmed || !name || name === doc.original_name) return;
+        const description = this.editDescription.trim();
+        if (!confirmed || !name) return;
+        const changes: DocumentUpdate = {};
+        if (name !== doc.original_name) changes.original_name = name;
+        if (this.editKind !== doc.kind) changes.kind = this.editKind;
+        if (description !== (doc.description ?? '')) changes.description = description || null;
+        if (Object.keys(changes).length === 0) return;
         this.busy.set(true);
-        this.service.update(doc.id, { original_name: name }).subscribe({
+        this.service.update(doc.id, changes).subscribe({
           next: () => this.afterMutation(this.copy().toasts.updated),
-          error: () => this.fail(this.copy().toasts.updateFailed),
+          // El backend explica por que (p. ej. un formato sin descripcion).
+          error: (err) => this.fail(err?.error?.detail ?? this.copy().toasts.updateFailed),
         });
       });
+  }
+
+  // Un formato sin descripcion no se puede ofrecer: el backend lo rechazaria.
+  canSaveKind(kind: DocumentKind, description: string): boolean {
+    return kind === 'KNOWLEDGE' || description.trim().length > 0;
   }
 
   // --- Eliminar ---
@@ -390,9 +426,9 @@ export class DocumentsComponent {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  private upload(file: File, visibleName?: string): void {
+  private upload(file: File, visibleName: string, kind: DocumentKind, description: string): void {
     this.busy.set(true);
-    this.service.upload(file).subscribe({
+    this.service.upload(file, kind, description).subscribe({
       next: (created) => {
         if (visibleName && visibleName !== created.original_name) {
           // Nombre visible personalizado desde el dialogo de subida.

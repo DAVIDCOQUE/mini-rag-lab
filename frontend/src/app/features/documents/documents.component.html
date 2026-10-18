@@ -53,23 +53,39 @@
             </span>
           </div>
 
-          <span class="badge" [class]="'badge--' + statusVariant(doc.status)">
-            {{ statusLabel(doc.status) }}
-          </span>
+          @if (doc.kind === 'FORM') {
+            <span class="badge badge--info">
+              <mat-icon>qr_code_2</mat-icon>
+              {{ copy().kindForm }}
+            </span>
+          } @else {
+            <span class="badge" [class]="'badge--' + statusVariant(doc.status)">
+              {{ statusLabel(doc.status) }}
+            </span>
+          }
         </header>
 
-        <p class="doc__hint t-caption">{{ statusHint(doc.status) }}</p>
+        @if (doc.kind === 'FORM') {
+          <p class="doc__hint t-caption">
+            {{ copy().formCardHint }} <em>“{{ doc.description }}”</em>
+          </p>
+        } @else {
+          <p class="doc__hint t-caption">{{ statusHint(doc.status) }}</p>
+        }
 
         <footer class="doc__actions">
-          <button mat-stroked-button type="button" (click)="openProcess(doc)" [disabled]="busy()">
-            <mat-icon>bolt</mat-icon>
-            {{ copy().process }}
-          </button>
-          <button mat-stroked-button type="button" (click)="openIndex(doc)" [disabled]="busy()">
-            <mat-icon>storage</mat-icon>
-            {{ copy().index }}
-          </button>
-          @if (doc.status === 'INDEXED') {
+          <!-- Un formato nunca se procesa ni se indexa: el asistente no responde con el. -->
+          @if (doc.kind === 'KNOWLEDGE') {
+            <button mat-stroked-button type="button" (click)="openProcess(doc)" [disabled]="busy()">
+              <mat-icon>bolt</mat-icon>
+              {{ copy().process }}
+            </button>
+            <button mat-stroked-button type="button" (click)="openIndex(doc)" [disabled]="busy()">
+              <mat-icon>storage</mat-icon>
+              {{ copy().index }}
+            </button>
+          }
+          @if (doc.kind === 'KNOWLEDGE' && doc.status === 'INDEXED') {
             <button mat-stroked-button type="button" (click)="openIndexed(doc)" [disabled]="busy()">
               <mat-icon>visibility</mat-icon>
               {{ copy().inspect }}
@@ -137,10 +153,30 @@
       <input matInput [(ngModel)]="uploadName" />
       <mat-hint>{{ copy().dialogVisibleHint }}</mat-hint>
     </mat-form-field>
+
+    <div class="dialog-kind">
+      <mat-button-toggle-group [(ngModel)]="uploadKind" [attr.aria-label]="copy().kindHint">
+        <mat-button-toggle value="KNOWLEDGE">{{ copy().kindKnowledge }}</mat-button-toggle>
+        <mat-button-toggle value="FORM">{{ copy().kindForm }}</mat-button-toggle>
+      </mat-button-toggle-group>
+      <p class="t-caption">{{ copy().kindHint }}</p>
+    </div>
+
+    @if (uploadKind === 'FORM') {
+      <mat-form-field appearance="outline" class="dialog-field">
+        <mat-label>{{ copy().descriptionLabel }}</mat-label>
+        <textarea matInput rows="3" [(ngModel)]="uploadDescription" required></textarea>
+        <mat-hint>{{ copy().descriptionHint }}</mat-hint>
+      </mat-form-field>
+    }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button [mat-dialog-close]="false">{{ copy().cancel }}</button>
-    <button mat-flat-button [mat-dialog-close]="true" [disabled]="!uploadFile()">
+    <button
+      mat-flat-button
+      [mat-dialog-close]="true"
+      [disabled]="!uploadFile() || !canSaveKind(uploadKind, uploadDescription)"
+    >
       {{ copy().dialogUploadTitle }}
     </button>
   </mat-dialog-actions>
@@ -153,10 +189,30 @@
       <mat-label>{{ copy().dialogVisibleName }}</mat-label>
       <input matInput [(ngModel)]="editName" />
     </mat-form-field>
+
+    <div class="dialog-kind">
+      <mat-button-toggle-group [(ngModel)]="editKind" [attr.aria-label]="copy().kindHint">
+        <mat-button-toggle value="KNOWLEDGE">{{ copy().kindKnowledge }}</mat-button-toggle>
+        <mat-button-toggle value="FORM">{{ copy().kindForm }}</mat-button-toggle>
+      </mat-button-toggle-group>
+      <p class="t-caption">{{ copy().kindHint }}</p>
+    </div>
+
+    @if (editKind === 'FORM') {
+      <mat-form-field appearance="outline" class="dialog-field">
+        <mat-label>{{ copy().descriptionLabel }}</mat-label>
+        <textarea matInput rows="3" [(ngModel)]="editDescription" required></textarea>
+        <mat-hint>{{ copy().descriptionHint }}</mat-hint>
+      </mat-form-field>
+    }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button [mat-dialog-close]="false">{{ copy().cancel }}</button>
-    <button mat-flat-button [mat-dialog-close]="true" [disabled]="!editName.trim()">
+    <button
+      mat-flat-button
+      [mat-dialog-close]="true"
+      [disabled]="!editName.trim() || !canSaveKind(editKind, editDescription)"
+    >
       {{ copy().save }}
     </button>
   </mat-dialog-actions>
