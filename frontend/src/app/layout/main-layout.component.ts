@@ -103,6 +103,12 @@ export class MainLayoutComponent {
             icon: 'tune',
             description: 'Comportamiento del agente',
           },
+          {
+            path: '/profile',
+            label: 'Perfil',
+            icon: 'badge',
+            description: 'Identidad y atención',
+          },
         ]
       : [
           {
@@ -134,6 +140,12 @@ export class MainLayoutComponent {
             label: 'Prompts',
             icon: 'tune',
             description: 'Agent behaviour',
+          },
+          {
+            path: '/profile',
+            label: 'Profile',
+            icon: 'badge',
+            description: 'Identity and help desk',
           },
         ];
   });

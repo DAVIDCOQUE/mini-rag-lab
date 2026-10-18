@@ -33,6 +33,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/prompts/prompts.component').then((m) => m.PromptsComponent),
       },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile.component').then((m) => m.ProfileComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

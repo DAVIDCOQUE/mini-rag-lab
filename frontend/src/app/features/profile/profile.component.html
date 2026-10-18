@@ -1,0 +1,56 @@
+<div class="profile enter">
+  <header class="profile__intro">
+    <span class="eyebrow">{{ copy().eyebrow }}</span>
+    <h1 class="t-title-1">{{ copy().title }}</h1>
+    <p class="t-caption">{{ copy().intro }}</p>
+  </header>
+
+  @if (loadFailed()) {
+    <div class="empty-state surface">
+      <mat-icon>cloud_off</mat-icon>
+      <p>{{ copy().loadFailed }}</p>
+    </div>
+  } @else if (saved()) {
+    <form class="profile__form" (ngSubmit)="save()">
+      <section class="profile__card surface">
+        <h2 class="t-title-3">{{ copy().identity }}</h2>
+        <mat-form-field appearance="outline">
+          <mat-label>{{ copy().fields.assistant_name }}</mat-label>
+          <input matInput name="assistant_name" [(ngModel)]="draft.assistant_name" required maxlength="60" />
+        </mat-form-field>
+        <mat-button-toggle-group name="gender" [(ngModel)]="gender">
+          <mat-button-toggle value="FEMININE">{{ copy().feminine }}</mat-button-toggle>
+          <mat-button-toggle value="MASCULINE">{{ copy().masculine }}</mat-button-toggle>
+        </mat-button-toggle-group>
+      </section>
+
+      <section class="profile__card surface">
+        <h2 class="t-title-3">{{ copy().institution }}</h2>
+        @for (field of institutionFields; track field) {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ copy().fields[field] }}</mat-label>
+            <input matInput [name]="field" [(ngModel)]="draft[field]" />
+          </mat-form-field>
+        }
+      </section>
+
+      <section class="profile__card surface">
+        <h2 class="t-title-3">{{ copy().help }}</h2>
+        <p class="t-caption">{{ copy().helpIntro }}</p>
+        @for (field of helpFields; track field) {
+          <mat-form-field appearance="outline">
+            <mat-label>{{ copy().fields[field] }}</mat-label>
+            <input matInput [name]="field" [(ngModel)]="draft[field]" />
+          </mat-form-field>
+        }
+      </section>
+
+      <footer class="profile__actions">
+        <button mat-flat-button type="submit" [disabled]="saving()">
+          <mat-icon>save</mat-icon>
+          {{ copy().save }}
+        </button>
+      </footer>
+    </form>
+  }
+</div>
