@@ -104,6 +104,12 @@ export class MainLayoutComponent {
             description: 'Comportamiento del agente',
           },
           {
+            path: '/conversations',
+            label: 'Conversaciones',
+            icon: 'forum',
+            description: 'Qué preguntan y dónde falla',
+          },
+          {
             path: '/profile',
             label: 'Perfil',
             icon: 'badge',
@@ -140,6 +146,12 @@ export class MainLayoutComponent {
             label: 'Prompts',
             icon: 'tune',
             description: 'Agent behaviour',
+          },
+          {
+            path: '/conversations',
+            label: 'Conversations',
+            icon: 'forum',
+            description: 'What people ask and where it fails',
           },
           {
             path: '/profile',

@@ -53,6 +53,7 @@ solo acepta conexiones desde su propia máquina.
 | `history` | lista | Turnos anteriores de **esta** conversación, en orden. Vacía en el primer mensaje |
 | `history[].role` | `"user"` o `"assistant"` | Quién lo dijo |
 | `history[].content` | string | El texto tal cual |
+| `conversation_id` | string, opcional | Un id (p. ej. un GUID) generado al empezar cada conversación y renovado al borrarla. Solo agrupa los turnos en el log del mantenedor; sin él el chat funciona igual |
 
 No hay que recortar el historial. El servidor se queda con lo que cabe en la
 memoria del modelo y conserva siempre el primer mensaje del estudiante.

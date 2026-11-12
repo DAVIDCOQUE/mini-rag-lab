@@ -34,6 +34,13 @@ export const routes: Routes = [
           import('./features/prompts/prompts.component').then((m) => m.PromptsComponent),
       },
       {
+        path: 'conversations',
+        loadComponent: () =>
+          import('./features/conversations/conversations.component').then(
+            (m) => m.ConversationsComponent,
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),

@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 from collections.abc import Sequence
 
@@ -11,7 +12,7 @@ from app.rag.embedding_service import EmbeddingError
 from app.rag.llm_service import LLMError
 from app.models.document import Document
 from app.schemas.chat import ChatDownload, ChatRequest, ChatResponse, ChatSource
-from app.services import download_service, rag_service
+from app.services import chat_log_service, download_service, rag_service
 from app.services.document_service import DocumentNotFoundError, get_document
 
 logger = logging.getLogger("mini_rag_lab")
@@ -25,6 +26,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     """RAG conversacional. El router decide si la pregunta necesita el corpus o no."""
     logger.info("Pregunta recibida: %s", request.message)
 
+    started = time.perf_counter()
     try:
         outcome = rag_service.answer_question(db, request.message, history=request.history)
     except EmbeddingError:
@@ -42,6 +44,15 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="No fue posible realizar la búsqueda (¿Qdrant activo?).",
         )
+
+    chat_log_service.record(
+        db,
+        request.message,
+        len(request.history),
+        request.conversation_id,
+        outcome,
+        (time.perf_counter() - started) * 1000,
+    )
 
     # Solo el camino institucional tiene fuentes que citar.
     documents = _resolve_documents(db, outcome.points)

@@ -34,6 +34,8 @@ export class ChatService {
   // Peticion en vuelo: permite cancelarla desde la UI.
   private pending: Subscription | null = null;
   private lastPrompt = '';
+  // Agrupa los turnos en el log del backend; se renueva con cada conversacion.
+  private conversationId = crypto.randomUUID();
 
   // Estado expuesto (solo lectura) para los componentes.
   readonly messages = this._messages.asReadonly();
@@ -71,6 +73,7 @@ export class ChatService {
     this._messages.set([]);
     this._error.set(null);
     this.lastPrompt = '';
+    this.conversationId = crypto.randomUUID();
   }
 
   private request(text: string): void {
@@ -84,7 +87,11 @@ export class ChatService {
       .map(({ role, content }) => ({ role, content }));
 
     this.pending = this.http
-      .post<ChatApiResponse>(`${this.baseUrl}/api/chat`, { message: text, history })
+      .post<ChatApiResponse>(`${this.baseUrl}/api/chat`, {
+        message: text,
+        history,
+        conversation_id: this.conversationId,
+      })
       .subscribe({
         next: (res) => {
           this.append('assistant', res.answer, res.downloads);

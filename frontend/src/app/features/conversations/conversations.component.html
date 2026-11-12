@@ -1,0 +1,170 @@
+<div class="page log enter">
+  <section class="toolbar surface surface--panel">
+    <div class="metrics">
+      <span class="eyebrow">{{ copy().summaryLabel }}</span>
+      <div class="metrics__row">
+        @for (metric of metrics(); track metric.key) {
+          <div class="metric">
+            <strong class="metric__value" [class]="'metric__value--' + metric.tone">{{ metric.value }}</strong>
+            <span class="metric__label">{{ metric.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="toolbar__actions">
+      <button
+        mat-icon-button
+        type="button"
+        (click)="load()"
+        [disabled]="loading()"
+        [attr.aria-label]="copy().refresh"
+        [title]="copy().refresh"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button mat-stroked-button type="button" (click)="exportCsv()" [disabled]="!total()">
+        <mat-icon>download</mat-icon>
+        {{ copy().export }}
+      </button>
+    </div>
+  </section>
+
+  <section class="filters surface">
+    <form class="filters__row" (ngSubmit)="load()">
+      <mat-form-field appearance="outline" class="filters__search" subscriptSizing="dynamic">
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-label>{{ copy().search }}</mat-label>
+        <input matInput name="q" [(ngModel)]="q" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="filters__date" subscriptSizing="dynamic">
+        <mat-label>{{ copy().from }}</mat-label>
+        <input matInput type="date" name="dateFrom" [(ngModel)]="dateFrom" (change)="load()" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="filters__date" subscriptSizing="dynamic">
+        <mat-label>{{ copy().to }}</mat-label>
+        <input matInput type="date" name="dateTo" [(ngModel)]="dateTo" (change)="load()" />
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="loading()">{{ copy().apply }}</button>
+      <button mat-button type="button" (click)="clearFilters()">{{ copy().clear }}</button>
+    </form>
+
+    <div class="filters__row">
+      <mat-button-toggle-group
+        name="route"
+        [(ngModel)]="route"
+        (change)="load()"
+        [attr.aria-label]="copy().routes.institutional"
+      >
+        <mat-button-toggle value="">{{ copy().all }}</mat-button-toggle>
+        @for (option of routeOptions; track option) {
+          <mat-button-toggle [value]="option">
+            {{ copy().routes[option] }}
+            @if (stats()?.by_route?.[option]; as count) {
+              <span class="filters__count">{{ count }}</span>
+            }
+          </mat-button-toggle>
+        }
+      </mat-button-toggle-group>
+      <mat-checkbox name="noAnswer" [(ngModel)]="noAnswer" (change)="load()">
+        {{ copy().onlyNoAnswer }}
+      </mat-checkbox>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <section class="entries">
+    @for (item of items(); track item.id) {
+      <article class="entry surface" [class.entry--open]="expanded() === item.id">
+        <button
+          type="button"
+          class="entry__head"
+          (click)="toggle(item)"
+          [attr.aria-expanded]="expanded() === item.id"
+        >
+          <span class="entry__time t-caption">
+            {{ item.created_at | date: 'dd MMM, HH:mm' }}
+            <span class="entry__turn">{{ copy().turn(item.turn) }}</span>
+          </span>
+          <span class="entry__question">{{ item.question }}</span>
+          <span class="entry__badges">
+            <span class="badge" [class]="'badge--' + routeVariant(item.route)">{{ routeLabel(item.route) }}</span>
+            @if (item.no_answer) {
+              <span class="badge badge--warn">{{ copy().noAnswerBadge }}</span>
+            }
+            @if (item.delivered_forms) {
+              <span class="badge badge--ok">
+                <mat-icon>qr_code_2</mat-icon>
+                {{ item.delivered_forms }}
+              </span>
+            } @else if (item.offered_forms) {
+              <span class="badge badge--neutral">{{ copy().offered }} {{ item.offered_forms }}</span>
+            }
+            <span class="entry__ms t-caption">{{ seconds(item.total_ms) }}</span>
+          </span>
+        </button>
+
+        @if (expanded() === item.id) {
+          <div class="entry__body">
+            <p class="eyebrow">{{ copy().answer }}</p>
+            <p class="entry__answer">{{ item.answer }}</p>
+
+            <dl class="entry__facts t-caption">
+              @if (item.search_query && item.search_query !== item.question) {
+                <div>
+                  <dt>{{ copy().searchedWith }}</dt>
+                  <dd>{{ item.search_query }}</dd>
+                </div>
+              }
+              @if (item.top_score !== null) {
+                <div>
+                  <dt>{{ copy().score }}</dt>
+                  <dd>{{ item.top_score | number: '1.2-2' }}</dd>
+                </div>
+              }
+              <div>
+                <dt>{{ copy().router }}</dt>
+                <dd>{{ item.router ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt>{{ copy().timings }}</dt>
+                <dd>
+                  {{ copy().routing }} {{ seconds(item.routing_ms) }} · {{ copy().retrieval }}
+                  {{ seconds(item.retrieval_ms) }} · {{ copy().generation }} {{ seconds(item.generation_ms) }}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        }
+      </article>
+    }
+
+    @if (!loading() && items().length === 0) {
+      <div class="empty-state surface">
+        <mat-icon>forum</mat-icon>
+        <p>{{ stats()?.total === 0 && !q && !route && !noAnswer ? copy().emptyAll : copy().empty }}</p>
+      </div>
+    }
+
+    @if (items().length > 0) {
+      <footer class="entries__footer">
+        <span class="t-caption">{{ copy().showing(items().length, total()) }}</span>
+        @if (hasMore()) {
+          <button mat-stroked-button type="button" (click)="loadMore()" [disabled]="loading()">
+            {{ copy().loadMore }}
+          </button>
+        }
+      </footer>
+    }
+  </section>
+
+  @if (retentionDays(); as days) {
+    <p class="log__privacy t-caption">
+      <mat-icon>shield</mat-icon>
+      {{ copy().privacy(days) }}
+    </p>
+  }
+</div>

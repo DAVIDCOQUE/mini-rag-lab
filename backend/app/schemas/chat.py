@@ -15,6 +15,9 @@ class ChatRequest(BaseModel):
     # Turnos previos de la conversacion en curso. El servidor no guarda nada entre
     # peticiones: borrar la conversacion es responsabilidad del cliente (el quiosco).
     history: list[ChatTurn] = Field(default_factory=list)
+    # Opcional: identificador que el cliente genera por conversacion para agrupar los
+    # turnos en el log. No da memoria al servidor.
+    conversation_id: str | None = Field(default=None, max_length=64)
 
 
 class ChatSource(BaseModel):

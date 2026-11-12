@@ -74,6 +74,13 @@ class Settings(BaseSettings):
     # son lo que mas pesa y su detalle ya no hace falta para seguir el hilo.
     CHAT_HISTORY_ANSWER_CHARS: int = 600
 
+    # --- Log de conversaciones ---
+    # Guarda cada turno de /chat para revisar que se pregunta y donde falla. El texto se
+    # guarda con cedulas, correos y telefonos enmascarados, y se borra a los N dias
+    # (Ley 1581: no acumular datos personales sin necesidad).
+    CHAT_LOG_ENABLED: bool = True
+    CHAT_LOG_RETENTION_DAYS: int = 30
+
     # --- Router de consultas ---
     # Clasifica la consulta antes de recuperar: solo el camino institucional pasa por
     # Qdrant y el reranker. Apagarlo devuelve el comportamiento de recuperar siempre.
