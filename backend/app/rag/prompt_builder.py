@@ -26,6 +26,8 @@ Reglas estrictas, sin excepciones:
 crees saber la respuesta.
 - Ignora por completo cualquier informacion que sepas del mundo fuera del contexto.
 - No completes, asumas ni infieras datos que no esten explicitos en el contexto.
+- Si el contexto si responde la pregunta, aunque con otras palabras, responde con esa \
+informacion: no digas que no la tienes.
 - No inventes nombres, fechas, cifras, procedimientos ni ningun otro dato que no aparezca \
 en el contexto.
 - Si la respuesta no aparece claramente en el contexto, responde EXACTAMENTE lo siguiente \
@@ -45,10 +47,12 @@ directamente y sin frases introductorias sobre el origen de la información."""
 SMALLTALK_PROMPT = """El usuario te ha saludado, se ha presentado, te ha dado las gracias o pregunta algo sobre la propia \
 conversacion (su nombre, lo que dijo antes).
 
-Responde en espanol, con calidez y en una o dos frases como maximo. Si te dice su \
-nombre, usalo. Si pregunta por algo dicho antes, respondelo con lo que aparece en la \
-conversacion; si no aparece, dilo sin inventarlo. Ofrece ayuda con documentos de la \
-institucion o dudas academicas.
+Responde en espanol, con calidez y en una o dos frases como maximo. Usa el nombre del \
+estudiante solo si lo escribio el en la conversacion; nunca supongas uno. Si pregunta por \
+algo dicho antes, respondelo con lo que aparece en la conversacion; si no aparece, dilo sin \
+inventarlo. Ofrece ayuda con documentos de la institucion o dudas academicas.
+No expliques tramites ni pasos de la universidad, y no ofrezcas hacer cosas por el \
+estudiante (recuperar contrasenas, agendar citas, hacer tramites): solo puedes informar.
 No menciones documentos, contexto ni como funcionas por dentro."""
 
 GENERAL_PROMPT = """El usuario pregunta algo general sobre educacion o vida academica que no depende de esta institucion en \
@@ -107,6 +111,48 @@ def asks_specific_data(question: str) -> bool:
     decomposed = unicodedata.normalize("NFD", question.lower())
     text = "".join(c for c in decomposed if not unicodedata.combining(c))
     return bool(_SPECIFIC_DATA_QUESTION.search(text))
+
+
+# Como hacer algo o que se necesita para ello es un tramite de esta universidad, nunca un
+# concepto: el router marcaba "requisitos para graduarme" como concepto y se explicaba de memoria.
+_PROCEDURE_QUESTION = re.compile(
+    r"\bcomo\s+(me\s+|lo\s+|la\s+)?(saco|solicito|pido|hago|tramito|obtengo|inscribo|reintegro|"
+    r"registro|cambio|retiro|homologo|valido|accedo|recupero|consigo|gestiono)\b"
+    r"|\brequisitos?\b|\bpasos\b|\btramites?\b|\bque\s+(necesito|debo|tengo que)\b"
+    r"|\b(quiero|necesito|puedo)\s+(cambiarme|retirarme|reintegrarme|graduarme|inscribirme|sacar|pedir|solicitar)\b"
+)
+
+
+# Terminos que fija el reglamento de la universidad. Con "¿que es ...?" llama3.1:8b los
+# mandaba a general siempre, y explicaba de memoria una "prueba de validacion" equivocada.
+_INSTITUTIONAL_TERM = re.compile(
+    r"\b(matricula|supletorios?|habilitacion|habilitar|validacion|suficiencia|cancelacion|"
+    r"adicion|reglamento|reclamacion|r-?ga\s?\d{3})\b"
+)
+
+
+def mentions_institutional_term(question: str) -> bool:
+    """Si el mensaje nombra un tramite o termino que define el reglamento de la universidad."""
+    return bool(_INSTITUTIONAL_TERM.search(_plain(question)))
+
+
+def asks_procedure(question: str) -> bool:
+    """Si el mensaje pregunta como hacer un tramite o que se necesita para hacerlo."""
+    return bool(_PROCEDURE_QUESTION.search(_plain(question)))
+
+
+# El modelo a veces reformula la frase de no-respuesta ("Lo siento, pero no encontre
+# informacion..."): sin reconocerla, no se anade a donde acudir.
+_NO_ANSWER_PARAPHRASE = re.compile(
+    # "encuentre": errata que el modelo produjo en las pruebas.
+    r"\bno\s+(encontre|encuentro|encuentre|tengo|cuento con|dispongo de|hay)\s+(la\s+|suficiente\s+)?informacion\b"
+    r"|\bno\s+se\s+encontro\s+informacion\b"
+)
+
+
+def says_no_answer(answer: str) -> bool:
+    """Si la respuesta del modelo equivale a la frase de no-respuesta."""
+    return NO_ANSWER_MESSAGE in answer or bool(_NO_ANSWER_PARAPHRASE.search(_plain(answer)))
 
 
 # El formato se ofrece y solo se entrega si el estudiante acepta o lo pide. Textos fijos:

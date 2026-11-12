@@ -158,3 +158,51 @@ def test_reconoce_las_preguntas_por_un_dato_concreto(mensaje):
 @pytest.mark.parametrize("mensaje", ["¿Qué es un crédito académico?", "¿Qué es el promedio ponderado?", "Explícame qué es una tesis"])
 def test_un_concepto_no_es_un_dato_concreto(mensaje):
     assert not prompt_builder.asks_specific_data(mensaje)
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        prompt_builder.NO_ANSWER_MESSAGE,
+        "Lo siento, pero no encontré información suficiente en los documentos para responder esa pregunta.",
+        "No tengo información sobre el cambio de carrera.",
+    ],
+)
+def test_la_no_respuesta_se_reconoce_aunque_el_modelo_la_reformule(answer):
+    assert prompt_builder.says_no_answer(answer)
+
+
+def test_una_respuesta_con_datos_no_cuenta_como_no_respuesta():
+    assert not prompt_builder.says_no_answer("Debes diligenciar el formato R-GA002 en la Secretaría Académica.")
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "¿Qué requisitos necesito para graduarme?",
+        "¿Cómo saco un certificado de notas?",
+        "Cancelé el semestre pasado, ¿cómo me reintegro?",
+        "Quiero cambiarme de carrera",
+        "¿Qué necesito para adicionar créditos?",
+    ],
+)
+def test_un_tramite_no_se_trata_como_concepto(question):
+    assert prompt_builder.asks_procedure(question)
+
+
+@pytest.mark.parametrize("question", ["¿Qué es un crédito académico?", "¿Qué significa el promedio ponderado?"])
+def test_un_concepto_no_es_un_tramite(question):
+    assert not prompt_builder.asks_procedure(question)
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["¿Qué es una prueba de validación?", "¿Qué es la matrícula académica?", "¿Qué es un supletorio?"],
+)
+def test_un_termino_del_reglamento_se_reconoce(question):
+    assert prompt_builder.mentions_institutional_term(question)
+
+
+@pytest.mark.parametrize("question", ["¿Qué es una tesis?", "¿Qué es un crédito académico?", "¿Cómo cito en APA?"])
+def test_un_tema_general_no_es_termino_del_reglamento(question):
+    assert not prompt_builder.mentions_institutional_term(question)

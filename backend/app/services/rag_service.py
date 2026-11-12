@@ -23,7 +23,10 @@ from app.rag.prompt_builder import (
     asks_about_creator,
     asks_assistant_name,
     asks_for_form,
+    asks_procedure,
     asks_specific_data,
+    mentions_institutional_term,
+    says_no_answer,
     Message,
     build_context_message,
     build_messages,
@@ -100,6 +103,10 @@ def route_query(
     question: str, history: Sequence[ChatTurn] | None = None, mode: str | None = None
 ) -> RouteDecision:
     """Decide el camino con el router configurado; el de embeddings respalda al LLM."""
+    return _keep_institutional_terms(_decide_route(question, history, mode), question)
+
+
+def _decide_route(question: str, history: Sequence[ChatTurn] | None, mode: str | None) -> RouteDecision:
     if (mode or settings.ROUTER_MODE) == "llm":
         try:
             return llm_router.decide(question, history)
@@ -112,6 +119,18 @@ def route_query(
     return RouteDecision(
         route=route, search_query=search_query, router="embedding", scores=scores, vector=vector
     )
+
+
+def _keep_institutional_terms(decision: RouteDecision, question: str) -> RouteDecision:
+    """Un termino del reglamento se busca en los documentos aunque el router diga general.
+
+    Si la guia no lo cubre, se explica como concepto con su aviso (is_concept).
+    """
+    if decision.route is Route.GENERAL and mentions_institutional_term(question):
+        decision.route = Route.INSTITUTIONAL
+        decision.is_concept = True
+        decision.reason = f"{decision.reason or ''} [termino del reglamento: se busca en los documentos]".strip()
+    return decision
 
 
 def answer_question(
@@ -250,7 +269,7 @@ def _institutional(
     answer = chat(messages)
     forms = []
     # El modelo tambien puede concluir que el contexto no responde: mismo respaldo.
-    if NO_ANSWER_MESSAGE in answer:
+    if says_no_answer(answer):
         answer = _without_documents(decision, question, history, profile)
     else:
         forms = form_matcher.match(db, decision.search_query, vector, answer=answer, context="\n".join(chunks))
@@ -304,7 +323,11 @@ def _without_documents(
     Un concepto general se explica con aviso fijo. Un dato de la universidad nunca se
     genera: en las pruebas el modelo invento la ubicacion de la Secretaria Academica.
     """
-    if not (settings.CHAT_CONCEPT_FALLBACK and decision.is_concept) or asks_specific_data(question):
+    if (
+        not (settings.CHAT_CONCEPT_FALLBACK and decision.is_concept)
+        or asks_specific_data(question)
+        or asks_procedure(question)
+    ):
         # A donde ir lo pone el perfil: es lo unico util cuando no hay respuesta.
         help_text = help_sentence(profile)
         return f"{NO_ANSWER_MESSAGE} {help_text}" if help_text else NO_ANSWER_MESSAGE

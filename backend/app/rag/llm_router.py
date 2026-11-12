@@ -15,9 +15,10 @@ Clasificas el MENSAJE A CLASIFICAR del estudiante en una ruta:
 - institutional: pide un dato propio de la universidad (normas, acuerdos, politicas, tramites, \
 requisitos, personas, cargos, lugares, horarios, costos). Tambien cualquier tramite o regla \
 academica del estudiante (matricular, agregar, cancelar o cambiar materias, examenes, notas, \
-asistencia, grado) y que significa cada uno ("¿que es la matricula academica?"): aunque suenen \
-generales, cada universidad los fija en su reglamento. Y los seguimientos de un tema \
-institucional ("¿y cuanto cuesta?").
+asistencia, grado, certificados, reintegro, cambio de carrera) y que significa cada uno \
+("¿que es la matricula academica?"): aunque suenen generales, cada universidad los fija en su \
+reglamento. Tambien problemas con los sistemas o servicios de la universidad (contrasenas, \
+plataformas, carne). Y los seguimientos de un tema institucional ("¿y cuanto cuesta?").
 - general: tema academico general que no depende de esta universidad (como estudiar, que es \
 una tesis, normas APA).
 Esto es un quiosco de la universidad: ante la duda entre institutional y general, elige institutional.
@@ -36,6 +37,8 @@ Ejemplos:
 "¿Quien es el rector?" -> institutional
 "¿Que dice el reglamento estudiantil?" -> institutional
 "(tras hablar de matricula) ¿y cuando cierra?" -> institutional, query: "¿Cuando cierra la matricula?"
+"Olvide mi contrasena de la plataforma" -> institutional
+"¿Como saco un certificado de notas?" -> institutional, concept: false
 "¿Que es una tesis?" -> general
 "Hola" -> conversation
 "¿Como me llamo?" -> conversation

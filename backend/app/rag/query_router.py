@@ -64,6 +64,10 @@ ROUTE_EXAMPLES: dict[Route, list[str]] = {
         "como saco el carne estudiantil",
         "cuando empiezan las clases y el calendario academico",
         "donde esta la oficina de bienestar universitario",
+        # "Quiero ..." se parecia a la charla: sin estos, "quiero cambiarme de grupo" iba a smalltalk.
+        "quiero cambiarme de grupo",
+        "quiero cambiarme de carrera",
+        "olvide mi contrasena del sistema academico",
     ],
     Route.GENERAL: [
         "que es un credito academico",
