@@ -76,9 +76,20 @@ def _resolve_documents(db: Session, points: Sequence[ScoredPoint]) -> dict[str, 
 
 
 def _downloads(forms: Sequence[tuple[Document, float]]) -> list[ChatDownload]:
-    """Enlace temporal de cada formato elegido para la pregunta."""
+    """Enlace de cada formato elegido: el publico si lo tiene, si no uno temporal firmado."""
     downloads = []
     for form, _ in forms:
+        if form.public_url:
+            downloads.append(
+                ChatDownload(
+                    document_id=form.id,
+                    filename=form.original_name,
+                    url=form.public_url,
+                    qr_url=download_service.public_qr_url(form.id),
+                    expires_at=None,
+                )
+            )
+            continue
         link = download_service.create_link(form.id)
         downloads.append(
             ChatDownload(

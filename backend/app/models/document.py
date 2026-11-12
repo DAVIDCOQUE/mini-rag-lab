@@ -31,6 +31,12 @@ class Document(Base):
     # Codigo impreso en el formato (p. ej. R-GA004). Cuando la guia lo cita para un tramite,
     # se ofrece este formato sin depender del parecido de la descripcion. Opcional.
     form_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Enlace publico del formato (OneDrive, Drive...). Si existe, el QR apunta aqui y no
+    # al enlace firmado del backend, que caduca y exige que el celular lo alcance.
+    public_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    # Id del archivo en OneDrive si lo subio el backend: al resubir se reemplaza ese
+    # mismo archivo y el enlace (y los QR impresos) siguen valiendo.
+    cloud_item_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

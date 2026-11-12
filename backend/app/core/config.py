@@ -106,6 +106,22 @@ class Settings(BaseSettings):
     # dejan de valer al reiniciar, que con 15 minutos de vida no importa.
     DOWNLOAD_SECRET: str = ""
 
+    # --- Formatos en OneDrive / SharePoint (Microsoft Graph) ---
+    # "": subida desactivada; el enlace publico se pega a mano o se usa el firmado.
+    # "app": cuenta institucional, sin inicio de sesion (client credentials). Requiere
+    #   consentimiento del administrador del tenant y que permita enlaces anonimos.
+    # "user": cuenta personal; se inicia sesion una vez con `python -m scripts.onedrive_login`.
+    ONEDRIVE_MODE: Literal["", "app", "user"] = ""
+    # Tenant de la universidad en modo app; "consumers" para cuentas personales.
+    ONEDRIVE_TENANT_ID: str = "consumers"
+    ONEDRIVE_CLIENT_ID: str = ""
+    ONEDRIVE_CLIENT_SECRET: str = ""  # solo modo app
+    # Solo modo app: correo de la cuenta cuyo OneDrive guarda los formatos.
+    ONEDRIVE_DRIVE_USER: str = ""
+    ONEDRIVE_FOLDER: str = "Sara/Formatos"
+    # Solo modo user: cache del token, fuera de git. Contiene un refresh token.
+    ONEDRIVE_TOKEN_CACHE: str = "storage/onedrive_token.json"
+
     # --- Procesamiento / chunking ---
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200

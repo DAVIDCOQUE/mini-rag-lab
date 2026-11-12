@@ -31,7 +31,8 @@ class ChatDownload(BaseModel):
     url: str
     # Imagen PNG del QR de url, generada por el backend: el cliente solo la muestra.
     qr_url: str
-    expires_at: datetime
+    # None: url es el enlace publico del formato y no caduca.
+    expires_at: datetime | None
 
 
 class ChatResponse(BaseModel):

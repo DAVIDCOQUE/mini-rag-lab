@@ -31,6 +31,7 @@ class DocumentResponse(BaseModel):
     kind: DocumentKind
     description: str | None
     form_code: str | None
+    public_url: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -43,3 +44,10 @@ class DocumentUpdate(BaseModel):
     kind: DocumentKind | None = None
     description: str | None = None
     form_code: str | None = None
+    public_url: str | None = None
+
+
+class CloudStatus(BaseModel):
+    """Si el backend puede subir formatos a OneDrive; sin ello solo se pega el enlace."""
+
+    enabled: bool

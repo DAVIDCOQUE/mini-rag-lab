@@ -72,6 +72,18 @@
             }
             {{ copy().formCardHint }} <em>“{{ doc.description }}”</em>
           </p>
+          @if (doc.public_url) {
+            <a
+              class="doc__link t-caption"
+              [href]="doc.public_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              [title]="doc.public_url"
+            >
+              <mat-icon>cloud_done</mat-icon>
+              {{ copy().openPublicUrl }}
+            </a>
+          }
         } @else {
           <p class="doc__hint t-caption">{{ statusHint(doc.status) }}</p>
         }
@@ -176,6 +188,16 @@
         <input matInput [(ngModel)]="uploadCode" />
         <mat-hint>{{ copy().codeHint }}</mat-hint>
       </mat-form-field>
+      @if (cloudEnabled()) {
+        <mat-checkbox [(ngModel)]="uploadToCloud">{{ copy().cloudCheck }}</mat-checkbox>
+      }
+      @if (!uploadToCloud) {
+        <mat-form-field appearance="outline" class="dialog-field">
+          <mat-label>{{ copy().publicUrlLabel }}</mat-label>
+          <input matInput type="url" [(ngModel)]="uploadPublicUrl" placeholder="https://" />
+          <mat-hint>{{ copy().publicUrlHint }}</mat-hint>
+        </mat-form-field>
+      }
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
@@ -217,6 +239,18 @@
         <input matInput [(ngModel)]="editCode" />
         <mat-hint>{{ copy().codeHint }}</mat-hint>
       </mat-form-field>
+      @if (cloudEnabled()) {
+        <mat-checkbox [(ngModel)]="editToCloud">
+          {{ editHasCloudFile ? copy().cloudCheckReplace : copy().cloudCheck }}
+        </mat-checkbox>
+      }
+      @if (!editToCloud) {
+        <mat-form-field appearance="outline" class="dialog-field">
+          <mat-label>{{ copy().publicUrlLabel }}</mat-label>
+          <input matInput type="url" [(ngModel)]="editPublicUrl" placeholder="https://" />
+          <mat-hint>{{ copy().publicUrlHint }}</mat-hint>
+        </mat-form-field>
+      }
     }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
@@ -228,6 +262,17 @@
     >
       {{ copy().save }}
     </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<ng-template #cloudDialog>
+  <h2 mat-dialog-title>{{ copy().dialogCloudTitle }}</h2>
+  <mat-dialog-content>
+    <p>{{ copy().dialogCloudBody(cloudTarget()) }}</p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">{{ copy().cancel }}</button>
+    <button mat-flat-button [mat-dialog-close]="true">{{ copy().confirmCloud }}</button>
   </mat-dialog-actions>
 </ng-template>
 

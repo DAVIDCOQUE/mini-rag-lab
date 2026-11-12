@@ -44,9 +44,11 @@ def create_document(
     kind: DocumentKind = DocumentKind.KNOWLEDGE,
     description: str | None = None,
     form_code: str | None = None,
+    public_url: str | None = None,
 ) -> Document:
     """Valida el PDF, lo guarda en disco con nombre UUID y registra el documento."""
     description = _clean_description(kind, description)
+    public_url = _clean_public_url(public_url) if kind is DocumentKind.FORM else None
     filename = file.filename or ""
     extension = Path(filename).suffix.lower().lstrip(".")
     if extension != ALLOWED_EXTENSION:
@@ -76,6 +78,7 @@ def create_document(
         description=description,
         # Sin codigo indicado se intenta leer del propio PDF.
         form_code=_clean_code(form_code) or (_extract_code(destination) if kind is DocumentKind.FORM else None),
+        public_url=public_url,
     )
     document = repository.create(db, document)
     logger.info("Documento creado: %s (%s)", document.original_name, document.id)
@@ -101,6 +104,10 @@ def update_document(db: Session, document_id: uuid.UUID, payload: DocumentUpdate
         setattr(document, field, value.value if hasattr(value, "value") else value)
     document.description = _clean_description(DocumentKind(document.kind), document.description)
     document.form_code = _clean_code(document.form_code) if document.kind == DocumentKind.FORM.value else None
+    is_form = document.kind == DocumentKind.FORM.value
+    document.public_url = _clean_public_url(document.public_url) if is_form else None
+    if not is_form:
+        document.cloud_item_id = None
 
     if document.kind != previous_kind:
         # Un documento que pasa a formato no puede seguir en la busqueda. Aqui el borrado
@@ -135,6 +142,35 @@ def _extract_code(path: Path) -> str | None:
         return None
     match = _CODE_IN_PDF.search(text)
     return _clean_code(match.group(1)) if match else None
+
+
+def upload_form_to_cloud(db: Session, document_id: uuid.UUID) -> Document:
+    """Sube el formato a OneDrive y guarda su enlace publico; si ya estaba, lo reemplaza."""
+    from app.services import onedrive_service
+
+    document = get_document(db, document_id)
+    if document.kind != DocumentKind.FORM.value:
+        raise InvalidDocumentError("Solo los formatos se suben a OneDrive.")
+    path = Path(document.storage_path)
+    if not path.is_file():
+        raise InvalidDocumentError("El archivo del formato no está en el servidor.")
+
+    cloud_file = onedrive_service.upload_form(document.original_name, path.read_bytes(), document.cloud_item_id)
+    document.cloud_item_id = cloud_file.item_id
+    document.public_url = cloud_file.public_url
+    return repository.update(db, document)
+
+
+def _clean_public_url(url: str | None) -> str | None:
+    text = (url or "").strip()
+    if not text:
+        return None
+    # El enlace termina dentro de un QR que abre un celular: solo http(s).
+    if not text.lower().startswith(("https://", "http://")):
+        raise InvalidDocumentError("El enlace público debe empezar por https://")
+    if len(text) > 1024:
+        raise InvalidDocumentError("El enlace público es demasiado largo.")
+    return text
 
 
 def _clean_code(code: str | None) -> str | None:

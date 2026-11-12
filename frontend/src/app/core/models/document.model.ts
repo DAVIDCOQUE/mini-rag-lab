@@ -18,6 +18,8 @@ export interface DocumentItem {
   description: string | null;
   // Codigo impreso en el formato (p. ej. R-GA004); opcional.
   form_code: string | null;
+  // Enlace publico del formato (OneDrive, Drive...); si existe, el QR apunta aqui.
+  public_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +30,11 @@ export interface DocumentUpdate {
   kind?: DocumentKind;
   description?: string | null;
   form_code?: string | null;
+  public_url?: string | null;
+}
+
+export interface CloudStatus {
+  enabled: boolean;
 }
 
 export interface ChunkResult {

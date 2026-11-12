@@ -9,11 +9,12 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.schemas.document import DocumentKind, DocumentResponse, DocumentUpdate
+from app.schemas.document import CloudStatus, DocumentKind, DocumentResponse, DocumentUpdate
 from app.schemas.processing import IndexedChunks, IndexResult, ProcessingResult
 from app.services import document_service as service
-from app.services import download_service
+from app.services import download_service, onedrive_service
 from app.services.download_service import InvalidDownloadTokenError
+from app.services.onedrive_service import CloudStorageError
 from app.services.document_processing_service import (
     DocumentProcessingService,
     EmptyDocumentError,
@@ -38,10 +39,11 @@ def create_document(
     kind: DocumentKind = Form(DocumentKind.KNOWLEDGE),
     description: str | None = Form(None),
     form_code: str | None = Form(None),
+    public_url: str | None = Form(None),
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     try:
-        return service.create_document(db, file, kind, description, form_code)
+        return service.create_document(db, file, kind, description, form_code, public_url)
     except InvalidDocumentError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
@@ -49,6 +51,25 @@ def create_document(
 @router.get("", response_model=list[DocumentResponse])
 def list_documents(db: Session = Depends(get_db)) -> list[DocumentResponse]:
     return service.list_documents(db)
+
+
+@router.get("/cloud-status", response_model=CloudStatus)
+def cloud_status() -> CloudStatus:
+    return CloudStatus(enabled=onedrive_service.is_enabled())
+
+
+@router.post("/{document_id}/cloud-upload", response_model=DocumentResponse)
+def upload_to_cloud(document_id: uuid.UUID, db: Session = Depends(get_db)) -> DocumentResponse:
+    """Sube el formato a OneDrive con enlace publico; si ya estaba subido, lo reemplaza."""
+    try:
+        return service.upload_form_to_cloud(db, document_id)
+    except DocumentNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")
+    except InvalidDocumentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except CloudStorageError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
 
 
 # Declarada antes de /{document_id}: si no, "download" se intentaria leer como un id.
@@ -81,10 +102,27 @@ def download_qr(token: str) -> Response:
         download_service.read_token(token)
     except InvalidDownloadTokenError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El enlace no es válido o ya caducó.")
+    return Response(content=_qr_png(download_service.url_for(token)), media_type="image/png")
+
+
+# Despues de /download/qr: declarada antes, "download" se intentaria leer como un id.
+@router.get("/{document_id}/qr", response_class=Response)
+def public_url_qr(document_id: uuid.UUID, db: Session = Depends(get_db)) -> Response:
+    """QR del enlace publico de un formato: no caduca, como el enlace al que apunta."""
+    try:
+        document = service.get_document(db, document_id)
+    except DocumentNotFoundError:
+        document = None
+    if document is None or document.kind != DocumentKind.FORM.value or not document.public_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El formato no tiene enlace público.")
+    return Response(content=_qr_png(document.public_url), media_type="image/png")
+
+
+def _qr_png(url: str) -> bytes:
     buffer = io.BytesIO()
     # Escala grande y borde estandar: se escanea desde la pantalla de un quiosco.
-    segno.make(download_service.url_for(token), error="m").save(buffer, kind="png", scale=10, border=4)
-    return Response(content=buffer.getvalue(), media_type="image/png")
+    segno.make(url, error="m").save(buffer, kind="png", scale=10, border=4)
+    return buffer.getvalue()
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)

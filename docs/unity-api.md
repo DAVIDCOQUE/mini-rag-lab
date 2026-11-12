@@ -201,6 +201,8 @@ Para cada elemento de `downloads`:
 2. **Mostrar `filename` junto al QR**, para que sepa qué se lleva.
 3. **Quitar el QR al terminar la conversación o al pasar `expires_at`.** El enlace
    caduca a los 15 minutos; después devuelve `404`.
+   Si `expires_at` es `null`, `url` es el enlace público del formato (OneDrive, Drive)
+   y no caduca: el QR solo se quita al terminar la conversación.
 
 El enlace va firmado: no se puede modificar para bajar otro documento. Si en el
 mantenedor se desmarca un formato, sus enlaces dejan de funcionar al instante.

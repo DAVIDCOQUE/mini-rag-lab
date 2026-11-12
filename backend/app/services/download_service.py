@@ -42,6 +42,11 @@ def url_for(token: str) -> str:
     return f"{_base()}/documents/download?token={token}"
 
 
+def public_qr_url(document_id: uuid.UUID) -> str:
+    """QR del enlace publico de un formato (OneDrive, Drive...); no caduca."""
+    return f"{_base()}/documents/{document_id}/qr"
+
+
 def _base() -> str:
     return f"{settings.PUBLIC_BASE_URL.rstrip('/')}{settings.API_PREFIX}"
 
