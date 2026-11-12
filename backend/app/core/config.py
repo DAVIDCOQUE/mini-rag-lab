@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     # Debe ser constante: si cambia entre peticiones, Ollama recarga el modelo. 16K cabe
     # en una GPU de 12 GB junto a bge-m3; con 32K Ollama expulsa el de embeddings.
     LLM_NUM_CTX: int = 16384
+    # Temperatura de las respuestas. Con la de Ollama por defecto (0.8) la misma pregunta
+    # salia bien o mal segun la ejecucion; un quiosco informativo quiere respuestas estables.
+    LLM_TEMPERATURE: float = 0.1
 
     # --- Reranking (cross-encoder via FastEmbed) ---
     RERANK_ENABLED: bool = True
