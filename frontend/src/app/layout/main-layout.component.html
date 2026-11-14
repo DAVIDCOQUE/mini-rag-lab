@@ -97,6 +97,17 @@
         >
           <mat-icon>{{ ui.theme() === 'dark' ? 'dark_mode' : 'light_mode' }}</mat-icon>
         </button>
+        @if (auth.isLoggedIn()) {
+          <button
+            mat-icon-button
+            type="button"
+            (click)="logout()"
+            [attr.aria-label]="chrome().logout"
+            [title]="chrome().logout"
+          >
+            <mat-icon>logout</mat-icon>
+          </button>
+        }
       </div>
     </header>
 

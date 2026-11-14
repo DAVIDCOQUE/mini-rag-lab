@@ -15,10 +15,9 @@ export class ChatLogService {
     return this.http.get<ChatLogPage>(this.endpoint, { params });
   }
 
-  // URL directa: el navegador descarga el CSV con el nombre que pone el backend.
-  exportUrl(filters: ChatLogFilters): string {
-    const query = this.params(filters).toString();
-    return `${this.endpoint}/export${query ? `?${query}` : ''}`;
+  // Por HttpClient y no con un enlace directo: asi la peticion lleva la sesion.
+  exportCsv(filters: ChatLogFilters): Observable<Blob> {
+    return this.http.get(`${this.endpoint}/export`, { params: this.params(filters), responseType: 'blob' });
   }
 
   private params(filters: ChatLogFilters): HttpParams {

@@ -14,6 +14,7 @@ import { catchError, filter, of, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { HealthService } from '../core/services/health.service';
+import { AuthService } from '../core/services/auth.service';
 import { UiPreferencesService } from '../core/services/ui-preferences.service';
 
 interface NavItem {
@@ -51,6 +52,7 @@ export class MainLayoutComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly health = inject(HealthService);
   readonly ui = inject(UiPreferencesService);
+  readonly auth = inject(AuthService);
 
   readonly compact = signal(false);
   readonly mobileNavOpen = signal(false);
@@ -181,6 +183,7 @@ export class MainLayoutComponent {
           theme: theme === 'dark' ? 'Oscuro' : 'Claro',
           themeHint: theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
           navToggle: 'Mostrar u ocultar la navegación',
+          logout: 'Cerrar sesión',
           offline: 'Backend sin respuesta',
           checking: 'Comprobando servicios…',
         }
@@ -193,6 +196,7 @@ export class MainLayoutComponent {
           theme: theme === 'dark' ? 'Dark' : 'Light',
           themeHint: theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
           navToggle: 'Show or hide navigation',
+          logout: 'Sign out',
           offline: 'Backend unreachable',
           checking: 'Checking services…',
         };
@@ -261,6 +265,11 @@ export class MainLayoutComponent {
 
   toggleLocale(): void {
     this.ui.toggleLocale();
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 
   toggleTheme(): void {

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from qdrant_client.models import ScoredPoint
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import guard_chat
 from app.database.session import get_db
 from app.rag.embedding_service import EmbeddingError
 from app.rag.llm_service import LLMError
@@ -21,7 +22,7 @@ router = APIRouter(tags=["chat"])
 
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse, dependencies=[Depends(guard_chat)])
 def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     """RAG conversacional. El router decide si la pregunta necesita el corpus o no."""
     logger.info("Pregunta recibida: %s", request.message)

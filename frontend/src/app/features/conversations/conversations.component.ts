@@ -205,7 +205,17 @@ export class ConversationsComponent {
   }
 
   exportCsv(): void {
-    window.open(this.service.exportUrl(this.filters()), '_blank');
+    this.service.exportCsv(this.filters()).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `conversaciones-sara-${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.snackBar.open(this.copy().loadFailed, this.copy().toastAction, { duration: 3000 }),
+    });
   }
 
   toggle(item: ChatLogItem): void {

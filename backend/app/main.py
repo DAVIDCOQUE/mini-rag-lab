@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.documents import ocr
 from app.database.session import SessionLocal
-from app.services import chat_log_service, rag_service
+from app.services import auth_service, chat_log_service, rag_service
 
 configure_logging()
 logger = logging.getLogger("mini_rag_lab")
@@ -24,6 +24,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     rag_service.warm_up()
     ocr.warm_up()
     _purge_chat_logs()
+    if not auth_service.is_enabled():
+        logging.getLogger("mini_rag_lab").warning(
+            "ADMIN_PASSWORD_HASH vacio: el mantenedor esta ABIERTO sin contrasena. "
+            "Generala con `python -m scripts.hash_password` antes de exponer el backend."
+        )
     yield
 
 

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import require_admin
 from app.database.session import get_db
 from app.schemas.document import CloudStatus, DocumentKind, DocumentResponse, DocumentUpdate
 from app.schemas.processing import IndexedChunks, IndexResult, ProcessingResult
@@ -30,10 +31,13 @@ from app.services.document_service import (
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+# Las descargas y sus QR son publicas (las abre el celular del estudiante); el resto, del mantenedor.
+admin = [Depends(require_admin)]
+
 processing_service = DocumentProcessingService()
 
 
-@router.post("", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED, dependencies=admin)
 def create_document(
     file: UploadFile = File(...),
     kind: DocumentKind = Form(DocumentKind.KNOWLEDGE),
@@ -48,17 +52,17 @@ def create_document(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.get("", response_model=list[DocumentResponse])
+@router.get("", response_model=list[DocumentResponse], dependencies=admin)
 def list_documents(db: Session = Depends(get_db)) -> list[DocumentResponse]:
     return service.list_documents(db)
 
 
-@router.get("/cloud-status", response_model=CloudStatus)
+@router.get("/cloud-status", response_model=CloudStatus, dependencies=admin)
 def cloud_status() -> CloudStatus:
     return CloudStatus(enabled=onedrive_service.is_enabled())
 
 
-@router.post("/{document_id}/cloud-upload", response_model=DocumentResponse)
+@router.post("/{document_id}/cloud-upload", response_model=DocumentResponse, dependencies=admin)
 def upload_to_cloud(document_id: uuid.UUID, db: Session = Depends(get_db)) -> DocumentResponse:
     """Sube el formato a OneDrive con enlace publico; si ya estaba subido, lo reemplaza."""
     try:
@@ -125,7 +129,7 @@ def _qr_png(url: str) -> bytes:
     return buffer.getvalue()
 
 
-@router.get("/{document_id}", response_model=DocumentResponse)
+@router.get("/{document_id}", response_model=DocumentResponse, dependencies=admin)
 def get_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> DocumentResponse:
     try:
         return service.get_document(db, document_id)
@@ -133,7 +137,7 @@ def get_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> Docum
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")
 
 
-@router.put("/{document_id}", response_model=DocumentResponse)
+@router.put("/{document_id}", response_model=DocumentResponse, dependencies=admin)
 def update_document(
     document_id: uuid.UUID, payload: DocumentUpdate, db: Session = Depends(get_db)
 ) -> DocumentResponse:
@@ -147,7 +151,7 @@ def update_document(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=admin)
 def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
     try:
         service.delete_document(db, document_id)
@@ -155,7 +159,7 @@ def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> No
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no encontrado.")
 
 
-@router.post("/{document_id}/process", response_model=ProcessingResult)
+@router.post("/{document_id}/process", response_model=ProcessingResult, dependencies=admin)
 def process_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> ProcessingResult:
     try:
         return processing_service.process_document(db, document_id)
@@ -169,7 +173,7 @@ def process_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> P
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 
 
-@router.post("/{document_id}/index", response_model=IndexResult)
+@router.post("/{document_id}/index", response_model=IndexResult, dependencies=admin)
 def index_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> IndexResult:
     try:
         return processing_service.index_document(db, document_id)
@@ -187,7 +191,7 @@ def index_document(document_id: uuid.UUID, db: Session = Depends(get_db)) -> Ind
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
 
-@router.get("/{document_id}/chunks", response_model=IndexedChunks)
+@router.get("/{document_id}/chunks", response_model=IndexedChunks, dependencies=admin)
 def get_indexed_chunks(document_id: uuid.UUID, db: Session = Depends(get_db)) -> IndexedChunks:
     try:
         return processing_service.get_indexed_chunks(db, document_id)

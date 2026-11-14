@@ -17,7 +17,20 @@ class Settings(BaseSettings):
     # --- Aplicacion ---
     PROJECT_NAME: str = "Sara"
     VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    # True imprime cada consulta SQL: solo para depurar en local.
+    DEBUG: bool = False
+
+    # --- Acceso al mantenedor ---
+    # Hash de la contrasena compartida, generado con `python -m scripts.hash_password`.
+    # Vacio: el mantenedor queda abierto (solo para desarrollo; se avisa al arrancar).
+    ADMIN_PASSWORD_HASH: str = ""
+    # Firma de las sesiones. Vacio: una aleatoria por arranque (reiniciar cierra sesiones).
+    AUTH_SECRET: str = ""
+    AUTH_TOKEN_TTL_HOURS: int = 8
+    # Opcional: si se define, /chat exige la cabecera X-Kiosk-Key (o una sesion del mantenedor).
+    KIOSK_API_KEY: str = ""
+    # Mensajes por minuto a /chat desde una misma IP; protege la GPU de rafagas.
+    CHAT_RATE_LIMIT_PER_MINUTE: int = 20
     API_PREFIX: str = "/api"
 
     # --- Servidor (uvicorn) ---
