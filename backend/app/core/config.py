@@ -118,7 +118,7 @@ class Settings(BaseSettings):
     # --- Descarga de formatos por QR ---
     # Direccion con la que el celular del estudiante llega al backend: es la que va
     # dentro del QR. "localhost" solo sirve para probar desde la misma maquina.
-    PUBLIC_BASE_URL: str = "http://localhost:8000"
+    PUBLIC_BASE_URL: str = "https://drive.google.com/drive/folders/1oOmFdGjuzvdbkFLMZiyRlHMi8JyxjRdd?usp=sharing"
     DOWNLOAD_LINK_TTL_MINUTES: int = 15
     # Similitud coseno entre la pregunta y la descripcion de un formato, calibradas con
     # evaluation/evaluate_forms.py. Con ROUTER_MODE=llm los embeddings solo preseleccionan
