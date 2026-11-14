@@ -133,6 +133,29 @@ Dos condiciones de la máquina anfitriona, que son la causa habitual de que no f
 
 ---
 
+## Seguridad: login del mantenedor y clave del quiosco
+
+Sin configurar nada, el mantenedor queda **abierto**: sirve para desarrollar en local, no para
+publicarlo. Antes de exponer Sara a internet (por ejemplo con ngrok) hay que definir, en el `.env`
+de la raíz si se usa Docker o en `backend/.env` si no:
+
+| Variable | Qué hace |
+|---|---|
+| `ADMIN_PASSWORD_HASH` | Activa el login del mantenedor. Se genera con `python -m scripts.hash_password` desde `backend/`: pide la contraseña y devuelve el hash. La contraseña nunca se guarda en claro |
+| `AUTH_SECRET` | Firma las sesiones. Una cadena larga y fija; si queda vacía, cada reinicio del backend cierra las sesiones abiertas |
+| `KIOSK_API_KEY` | Opcional. Si se define, `/api/chat` solo responde a quien envíe la cabecera `X-Kiosk-Key` con ese valor (el quiosco) o a una sesión del mantenedor |
+
+En el `.env` de la raíz el hash va **entre comillas simples** (`ADMIN_PASSWORD_HASH='pbkdf2_sha256$…'`):
+lleva `$` y Docker Compose los tomaría por variables. Tras cambiarlas hay que recrear el backend
+(`docker compose up -d backend`).
+
+Las sesiones duran `AUTH_TOKEN_TTL_HOURS` (8 h por defecto). Además, `/api/chat` limita los mensajes
+por equipo (`CHAT_RATE_LIMIT_PER_MINUTE`, 20 por defecto) para que nadie sature a Ollama.
+
+Cómo debe conectarse el quiosco, con la clave y a través de ngrok: [docs/unity-api.md](docs/unity-api.md).
+
+---
+
 ## Cómo levantar el backend (FastAPI)
 
 ```bash
@@ -184,6 +207,8 @@ servicio está caído, así que cada campo es `connected` o `disconnected`:
 | Método | Ruta | Qué hace |
 |---|---|---|
 | `GET` | `/health` | Estado de PostgreSQL, Qdrant y Ollama |
+| `GET` | `/api/auth/status` | Dice si el mantenedor pide login |
+| `POST` | `/api/auth/login` | Recibe la contraseña y devuelve una sesión firmada |
 | `POST` | `/api/documents` | Sube un documento |
 | `GET` | `/api/documents` | Lista los documentos |
 | `GET` | `/api/documents/{id}` | Detalle de un documento |
