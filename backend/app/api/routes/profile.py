@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import require_maintainer
 from app.database.session import get_db
 from app.schemas.profile import ProfileResponse, ProfileUpdate
 from app.services import profile_service
 from app.services.profile_service import InvalidProfileError
 
-router = APIRouter(prefix="/profile", tags=["profile"])
+router = APIRouter(
+    prefix="/profile",
+    tags=["profile"],
+    dependencies=[Depends(require_maintainer)],
+)
 
 
 @router.get("", response_model=ProfileResponse)

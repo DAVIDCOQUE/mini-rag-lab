@@ -3,6 +3,8 @@ name: mini-rag-lab
 services:
   db:
     image: postgres:16-alpine
+    ports:
+      - "5433:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mini_rag_lab}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -31,6 +33,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-mini_rag_lab}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      MAINTAINER_PASSWORD: ${MAINTAINER_PASSWORD:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
       QDRANT_HOST: qdrant
       # Ollama corre en el host, no aqui: cada maquina ya tiene sus modelos descargados
       # y no tiene sentido duplicar varios GB dentro de un volumen.

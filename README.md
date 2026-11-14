@@ -109,7 +109,7 @@ PostgreSQL, Qdrant, el backend y el frontend. **Ollama se queda fuera**, corrien
 máquina anfitriona, para no duplicar varios GB de modelos ya descargados dentro de un volumen.
 
 ```bash
-copy .env.example .env        # ajustar LLM_MODEL al modelo que se tenga descargado
+copy .env.example .env        # ajustar LLM_MODEL y definir MAINTAINER_PASSWORD
 docker compose up --build
 ```
 
@@ -131,6 +131,22 @@ Dos condiciones de la máquina anfitriona, que son la causa habitual de que no f
    contenedor no lo alcanza. Hay que arrancarlo con `OLLAMA_HOST=0.0.0.0`, teniendo en
    cuenta que eso lo expone al resto de la red local.
 
+### Acceso al mantenedor
+
+Antes de exponer la aplicación, define `MAINTAINER_PASSWORD` con una contraseña de al
+menos 16 caracteres en el `.env` de la raíz (Docker Compose) o en `backend/.env` (backend
+local). No la guardes en el repositorio. El usuario fijo para el acceso es `mantenedor`.
+Si no hay una contraseña válida configurada, las operaciones del mantenedor quedan
+bloqueadas.
+
+La biblioteca, la búsqueda de administración, los prompts, el perfil y las conversaciones
+requieren acceso. El chat y los enlaces de descarga/QR siguen públicos para los estudiantes.
+Al entrar por ngrok, usa su URL HTTPS; la contraseña no debe enviarse por una conexión HTTP.
+
+Para QR con enlaces temporales accesibles desde un celular, configura `PUBLIC_BASE_URL` con
+el dominio HTTPS público. Si usas Docker Compose, ponlo en el `.env` de la raíz; el archivo
+`backend/.env` solo se lee cuando ejecutas el backend localmente.
+
 ---
 
 ## Cómo levantar el backend (FastAPI)
@@ -146,7 +162,7 @@ python -m venv .venv
 pip install -r requirements.txt
 
 # 3. Copiar variables de entorno
-copy .env.example .env        # ajustar credenciales si aplica
+copy .env.example .env        # definir MAINTAINER_PASSWORD antes de exponer el mantenedor
 
 # 4. Levantar el servidor (usa HOST/PORT del .env)
 python -m app.main

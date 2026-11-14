@@ -14,6 +14,7 @@ import { catchError, filter, of, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { HealthService } from '../core/services/health.service';
+import { MaintainerAuthService } from '../core/services/maintainer-auth.service';
 import { UiPreferencesService } from '../core/services/ui-preferences.service';
 
 interface NavItem {
@@ -50,6 +51,7 @@ export class MainLayoutComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly health = inject(HealthService);
+  readonly maintainerAuth = inject(MaintainerAuthService);
   readonly ui = inject(UiPreferencesService);
 
   readonly compact = signal(false);
@@ -181,6 +183,8 @@ export class MainLayoutComponent {
           theme: theme === 'dark' ? 'Oscuro' : 'Claro',
           themeHint: theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
           navToggle: 'Mostrar u ocultar la navegación',
+          maintainer: 'Mantenedor',
+          logout: 'Salir',
           offline: 'Backend sin respuesta',
           checking: 'Comprobando servicios…',
         }
@@ -193,6 +197,8 @@ export class MainLayoutComponent {
           theme: theme === 'dark' ? 'Dark' : 'Light',
           themeHint: theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
           navToggle: 'Show or hide navigation',
+          maintainer: 'Maintainer',
+          logout: 'Sign out',
           offline: 'Backend unreachable',
           checking: 'Checking services…',
         };
@@ -265,6 +271,11 @@ export class MainLayoutComponent {
 
   toggleTheme(): void {
     this.ui.toggleTheme();
+  }
+
+  logout(): void {
+    this.maintainerAuth.logout();
+    void this.router.navigateByUrl('/chat');
   }
 
   private syncRouteState(url: string): void {

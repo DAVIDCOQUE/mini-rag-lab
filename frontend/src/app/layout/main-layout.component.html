@@ -79,6 +79,17 @@
       </div>
 
       <div class="topbar__actions">
+        @if (maintainerAuth.isAuthenticated()) {
+          <button mat-button type="button" (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            {{ chrome().logout }}
+          </button>
+        } @else {
+          <a mat-button routerLink="/login">
+            <mat-icon>lock</mat-icon>
+            {{ chrome().maintainer }}
+          </a>
+        }
         <button
           mat-icon-button
           type="button"

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import require_maintainer
 from app.database.session import get_db
 from app.schemas.prompt import (
     DefaultPrompt,
@@ -11,7 +12,11 @@ from app.schemas.prompt import (
 from app.services import prompt_service as service
 from app.services.prompt_service import PromptCodeTakenError, PromptNotFoundError
 
-router = APIRouter(prefix="/prompts", tags=["prompts"])
+router = APIRouter(
+    prefix="/prompts",
+    tags=["prompts"],
+    dependencies=[Depends(require_maintainer)],
+)
 
 NOT_FOUND_DETAIL = "Prompt no encontrado."
 

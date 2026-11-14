@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.login-page {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  padding: var(--space-5);
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: min(100%, 28rem);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+
+  h1,
+  p {
+    margin: 0;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+    margin-top: var(--space-2);
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.login-card__icon {
+  color: var(--accent);
+}
+
+.login-card__error {
+  color: var(--danger-text);
+}
+
+.login-card__back {
+  color: var(--text-secondary);
+  font-size: var(--text-caption-size);
+}

@@ -4,6 +4,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import require_maintainer
 from app.database.session import get_db
 from app.rag.embedding_service import EmbeddingError
 from app.rag.llm_service import LLMError
@@ -18,7 +19,11 @@ from app.services.prompt_service import PromptNotFoundError
 
 logger = logging.getLogger("mini_rag_lab")
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter(
+    prefix="/search",
+    tags=["search"],
+    dependencies=[Depends(require_maintainer)],
+)
 
 # Se reutiliza el retriever del servicio en lugar de crear otro: cada Retriever trae
 # su propio reranker, y cargar dos veces el mismo cross-encoder solo duplica memoria.

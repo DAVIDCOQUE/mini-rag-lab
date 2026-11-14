@@ -5,12 +5,17 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.security import require_maintainer
 from app.database.session import get_db
 from app.schemas.chat_log import ChatLogPage, ChatLogStats
 from app.services import chat_log_service as service
 from app.services.chat_log_service import LogFilters
 
-router = APIRouter(prefix="/chat-logs", tags=["chat-logs"])
+router = APIRouter(
+    prefix="/chat-logs",
+    tags=["chat-logs"],
+    dependencies=[Depends(require_maintainer)],
+)
 
 # Tope del CSV: suficiente para la retencion por defecto sin cargar la tabla entera.
 EXPORT_LIMIT = 20000

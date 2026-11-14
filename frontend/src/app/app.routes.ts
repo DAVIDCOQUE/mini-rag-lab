@@ -1,8 +1,14 @@
 import { Routes } from '@angular/router';
 
 import { MainLayoutComponent } from './layout/main-layout.component';
+import { maintainerGuard } from './core/auth/maintainer.guard';
 
 export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./features/login/login.component').then((m) => m.LoginComponent),
+  },
   {
     path: '',
     component: MainLayoutComponent,
@@ -20,21 +26,25 @@ export const routes: Routes = [
       },
       {
         path: 'documents',
+        canActivate: [maintainerGuard],
         loadComponent: () =>
           import('./features/documents/documents.component').then((m) => m.DocumentsComponent),
       },
       {
         path: 'search',
+        canActivate: [maintainerGuard],
         loadComponent: () =>
           import('./features/search/search.component').then((m) => m.SearchComponent),
       },
       {
         path: 'prompts',
+        canActivate: [maintainerGuard],
         loadComponent: () =>
           import('./features/prompts/prompts.component').then((m) => m.PromptsComponent),
       },
       {
         path: 'conversations',
+        canActivate: [maintainerGuard],
         loadComponent: () =>
           import('./features/conversations/conversations.component').then(
             (m) => m.ConversationsComponent,
@@ -42,6 +52,7 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
+        canActivate: [maintainerGuard],
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),
       },

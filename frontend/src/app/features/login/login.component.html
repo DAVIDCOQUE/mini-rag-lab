@@ -1,0 +1,32 @@
+<main class="login-page">
+  <section class="login-card surface surface--panel">
+    <span class="eyebrow">Acceso protegido</span>
+    <mat-icon class="login-card__icon" aria-hidden="true">lock</mat-icon>
+    <h1>Acceso al mantenedor</h1>
+    <p class="t-caption">Ingresa la contraseña para administrar documentos y configuración.</p>
+
+    <form (submit)="submit($event)">
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input
+          matInput
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          required
+          [disabled]="loading()"
+        />
+      </mat-form-field>
+
+      @if (errorMessage(); as message) {
+        <p class="login-card__error" role="alert">{{ message }}</p>
+      }
+
+      <button mat-flat-button type="submit" [disabled]="loading()">
+        {{ loading() ? 'Validando…' : 'Entrar' }}
+      </button>
+    </form>
+
+    <a class="login-card__back" routerLink="/chat">Volver al chat</a>
+  </section>
+</main>
