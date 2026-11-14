@@ -59,3 +59,21 @@ def test_alargar_la_caducidad_invalida_la_firma():
 def test_un_token_mal_formado_no_revienta(basura):
     with pytest.raises(InvalidDownloadTokenError):
         download_service.read_token(basura, now=AHORA)
+
+
+def test_sin_public_base_url_se_usa_la_direccion_de_la_peticion(monkeypatch):
+    # Caso ngrok: los enlaces salen con la URL por la que entro el quiosco.
+    monkeypatch.setattr(settings, "PUBLIC_BASE_URL", "")
+
+    link = download_service.create_link(DOC, now=AHORA, request_base="https://abc.ngrok-free.app/")
+
+    assert link.url.startswith("https://abc.ngrok-free.app/api/documents/download?token=")
+    assert link.qr_url.startswith("https://abc.ngrok-free.app/api/documents/download/qr?token=")
+
+
+def test_public_base_url_definida_manda_sobre_la_peticion(monkeypatch):
+    monkeypatch.setattr(settings, "PUBLIC_BASE_URL", "https://sara.universidad.edu.co")
+
+    link = download_service.create_link(DOC, now=AHORA, request_base="https://abc.ngrok-free.app/")
+
+    assert link.url.startswith("https://sara.universidad.edu.co/api/")

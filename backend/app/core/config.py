@@ -116,9 +116,11 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = 20
 
     # --- Descarga de formatos por QR ---
-    # Direccion con la que el celular del estudiante llega al backend: es la que va
-    # dentro del QR. "localhost" solo sirve para probar desde la misma maquina.
-    PUBLIC_BASE_URL: str = "https://drive.google.com/drive/folders/1oOmFdGjuzvdbkFLMZiyRlHMi8JyxjRdd?usp=sharing"
+    # Direccion del BACKEND con la que el celular del estudiante llega a el: va dentro
+    # del QR. Vacio: se usa la direccion por la que llego la peticion (ngrok, IP del
+    # servidor). No es el destino del formato: un enlace de Drive se pone por formato,
+    # en "Enlace publico" del mantenedor.
+    PUBLIC_BASE_URL: str = ""
     DOWNLOAD_LINK_TTL_MINUTES: int = 15
     # Similitud coseno entre la pregunta y la descripcion de un formato, calibradas con
     # evaluation/evaluate_forms.py. Con ROUTER_MODE=llm los embeddings solo preseleccionan
