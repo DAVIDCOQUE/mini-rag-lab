@@ -157,6 +157,32 @@
   background: var(--surface-sunken);
 }
 
+.doc__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  color: inherit;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.dialog-kind {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+  }
+}
+
 .doc__actions {
   display: flex;
   align-items: center;

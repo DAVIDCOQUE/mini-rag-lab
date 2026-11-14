@@ -1,0 +1,44 @@
+<main class="login">
+  <form class="login__card surface surface--panel enter" (ngSubmit)="submit()">
+    <span class="login__mark">
+      <mat-icon>stack_star</mat-icon>
+    </span>
+    <h1 class="login__title">{{ copy().title }}</h1>
+    <p class="login__subtitle t-caption">{{ copy().subtitle }}</p>
+
+    <mat-form-field appearance="outline" class="login__field">
+      <mat-label>{{ copy().password }}</mat-label>
+      <input
+        matInput
+        name="password"
+        autocomplete="current-password"
+        [type]="showPassword() ? 'text' : 'password'"
+        [(ngModel)]="password"
+        [disabled]="busy()"
+        required
+        autofocus
+      />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        (click)="showPassword.set(!showPassword())"
+        [attr.aria-label]="showPassword() ? copy().hide : copy().show"
+        [title]="showPassword() ? copy().hide : copy().show"
+      >
+        <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    @if (error(); as message) {
+      <p class="login__error" role="alert">
+        <mat-icon>error</mat-icon>
+        {{ message }}
+      </p>
+    }
+
+    <button mat-flat-button type="submit" class="login__submit" [disabled]="!password || busy()">
+      {{ copy().submit }}
+    </button>
+  </form>
+</main>

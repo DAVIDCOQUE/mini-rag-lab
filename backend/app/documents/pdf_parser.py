@@ -33,7 +33,9 @@ class PdfParser:
         with fitz.open(str(file_path)) as document:
             pages: list[str] = []
             for page in document:
-                text = page.get_text()
+                # sort: orden de lectura (arriba-abajo, izquierda-derecha). Sin el, el
+                # titulo de una diapositiva podia salir al final de su propia pagina.
+                text = page.get_text(sort=True)
                 if not text.strip():
                     # Pagina sin texto extraible (probable escaneo) -> intentar OCR.
                     text = self._ocr_page(page)

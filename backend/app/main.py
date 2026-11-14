@@ -10,7 +10,8 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.documents import ocr
-from app.services import rag_service
+from app.database.session import SessionLocal
+from app.services import auth_service, chat_log_service, rag_service
 
 configure_logging()
 logger = logging.getLogger("mini_rag_lab")
@@ -22,12 +23,28 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # durante el despliegue, no en la cara del primer usuario.
     rag_service.warm_up()
     ocr.warm_up()
+    _purge_chat_logs()
+    if not auth_service.is_enabled():
+        logging.getLogger("mini_rag_lab").warning(
+            "ADMIN_PASSWORD_HASH vacio: el mantenedor esta ABIERTO sin contrasena. "
+            "Generala con `python -m scripts.hash_password` antes de exponer el backend."
+        )
     yield
+
+
+def _purge_chat_logs() -> None:
+    """Retencion del log de conversaciones; best-effort, como el calentamiento."""
+    try:
+        with SessionLocal() as db:
+            chat_log_service.purge_expired(db)
+    except Exception as exc:
+        logging.getLogger("mini_rag_lab").warning("No se pudo purgar el log de conversaciones: %s", exc)
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
+    contact={"name": "@DAVIDCOQUE", "url": "https://github.com/DAVIDCOQUE"},
     debug=settings.DEBUG,
     lifespan=lifespan,
 )

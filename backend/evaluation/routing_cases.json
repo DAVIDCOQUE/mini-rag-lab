@@ -37,6 +37,8 @@
     {"message": "¿Qué nota necesito para aprobar?", "expected": "institutional"},
     {"message": "¿Puedo habilitar si saqué menos de tres?", "expected": "institutional"},
     {"message": "¿Cómo cancelo el semestre?", "expected": "institutional"},
+    {"message": "Quiero agregar una materia", "expected": "institutional"},
+    {"message": "¿Qué es la matrícula académica?", "expected": "institutional"},
 
     {"message": "¿Qué es un crédito académico?", "expected": "general"},
     {"message": "¿Cómo estudio mejor para un parcial?", "expected": "general"},
@@ -53,6 +55,8 @@
     {"message": "Chao, que estés bien", "expected": "smalltalk"},
     {"message": "¿Cómo estás?", "expected": "smalltalk"},
     {"message": "¿Quién eres?", "expected": "smalltalk"},
+    {"message": "¿Quién te creó?", "expected": "smalltalk"},
+    {"message": "¿Quién te desarrolló?", "expected": "smalltalk"},
     {"message": "¿Cómo me llamo?", "history": "presentacion", "expected": "smalltalk"},
     {"message": "¿Qué estudio yo?", "history": "presentacion", "expected": "smalltalk"},
     {"message": "¿Qué te pregunté antes?", "history": "matricula", "expected": "smalltalk"},

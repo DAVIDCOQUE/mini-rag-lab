@@ -4,7 +4,9 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  CloudStatus,
   DocumentItem,
+  DocumentKind,
   DocumentUpdate,
   IndexedChunks,
   IndexResult,
@@ -24,10 +26,30 @@ export class DocumentService {
     return this.http.get<DocumentItem>(`${this.endpoint}/${id}`);
   }
 
-  upload(file: File): Observable<DocumentItem> {
+  upload(
+    file: File,
+    kind: DocumentKind = 'KNOWLEDGE',
+    description = '',
+    formCode = '',
+    publicUrl = '',
+  ): Observable<DocumentItem> {
     const form = new FormData();
     form.append('file', file);
+    form.append('kind', kind);
+    if (description) form.append('description', description);
+    // Sin codigo, el backend intenta leerlo del PDF.
+    if (formCode) form.append('form_code', formCode);
+    if (publicUrl) form.append('public_url', publicUrl);
     return this.http.post<DocumentItem>(this.endpoint, form);
+  }
+
+  cloudStatus(): Observable<CloudStatus> {
+    return this.http.get<CloudStatus>(`${this.endpoint}/cloud-status`);
+  }
+
+  // Sube el formato a OneDrive; si ya estaba subido, reemplaza el archivo y conserva el enlace.
+  uploadToCloud(id: string): Observable<DocumentItem> {
+    return this.http.post<DocumentItem>(`${this.endpoint}/${id}/cloud-upload`, {});
   }
 
   update(id: string, data: DocumentUpdate): Observable<DocumentItem> {

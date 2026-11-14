@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from collections.abc import Sequence
 
 from app.schemas.chat import ChatTurn
@@ -24,6 +26,8 @@ Reglas estrictas, sin excepciones:
 crees saber la respuesta.
 - Ignora por completo cualquier informacion que sepas del mundo fuera del contexto.
 - No completes, asumas ni infieras datos que no esten explicitos en el contexto.
+- Si el contexto si responde la pregunta, aunque con otras palabras, responde con esa \
+informacion: no digas que no la tienes.
 - No inventes nombres, fechas, cifras, procedimientos ni ningun otro dato que no aparezca \
 en el contexto.
 - Si la respuesta no aparece claramente en el contexto, responde EXACTAMENTE lo siguiente \
@@ -40,25 +44,30 @@ directamente y sin frases introductorias sobre el origen de la información."""
 # Prompts de los caminos que no pasan por la base vectorial. Son cortos a proposito:
 # el router ya decidio de que va el mensaje, asi que cada uno resuelve un solo caso en
 # lugar de llevar dentro el arbol de decisiones completo.
-SMALLTALK_PROMPT = """Eres el asistente academico de la universidad. El usuario te ha \
-saludado, se ha presentado, te ha dado las gracias o pregunta algo sobre la propia \
+SMALLTALK_PROMPT = """El usuario te ha saludado, se ha presentado, te ha dado las gracias o pregunta algo sobre la propia \
 conversacion (su nombre, lo que dijo antes).
 
-Responde en espanol, con calidez y en una o dos frases como maximo. Si te dice su \
-nombre, usalo. Si pregunta por algo dicho antes, respondelo con lo que aparece en la \
-conversacion; si no aparece, dilo sin inventarlo. Ofrece ayuda con documentos de la \
-institucion o dudas academicas.
+Responde en espanol, con calidez y en una o dos frases como maximo. Usa el nombre del \
+estudiante solo si lo escribio el en la conversacion; nunca supongas uno. Si pregunta por \
+algo dicho antes, respondelo con lo que aparece en la conversacion; si no aparece, dilo sin \
+inventarlo. Ofrece ayuda con documentos de la institucion o dudas academicas.
+No expliques tramites ni pasos de la universidad, y no ofrezcas hacer cosas por el \
+estudiante (recuperar contrasenas, agendar citas, hacer tramites): solo puedes informar.
 No menciones documentos, contexto ni como funcionas por dentro."""
 
-GENERAL_PROMPT = """Eres el asistente academico de la universidad. El usuario pregunta \
-algo general sobre educacion o vida academica que no depende de esta institucion en \
+GENERAL_PROMPT = """El usuario pregunta algo general sobre educacion o vida academica que no depende de esta institucion en \
 concreto.
 
 Responde en espanol con tu propio conocimiento, de forma breve y clara: dos o tres \
-frases bastan. Cierra avisando de que es informacion general y no proviene de los \
-documentos de la institucion.
+frases bastan. No anadas avisos sobre el origen de la informacion: el sistema los pone.
 Si la pregunta necesitara un dato propio de la universidad para responderse bien, dilo en \
 lugar de inventarlo."""
+
+# Respaldo cuando la guia no cubre un concepto academico general. El aviso lo pone el
+# codigo: el modelo lo omitia a veces.
+CONCEPT_FALLBACK_PROMPT = """Explica en espanol, en dos o tres frases claras, el concepto academico que pregunta el estudiante. No menciones \
+datos de ninguna universidad concreta (cifras, normas, lugares ni personas)."""
+GENERAL_NOTICE = "Esto es información general: no aparece en los documentos de la universidad."
 
 # Sin LLM: el camino fuera de ambito no merece una generacion.
 OFF_TOPIC_MESSAGE = (
@@ -67,9 +76,201 @@ OFF_TOPIC_MESSAGE = (
 )
 
 
+# Respuesta fija y no generada: con el nombre en el prompt, llama3.1:8b lo atribuia a
+# "equipos de investigacion" o confundia al estudiante con el autor.
+# Fijo en el codigo y no en el perfil: editable desde el mantenedor, cualquier
+# administrador podria atribuirse el desarrollo.
+CREATOR_MESSAGE = (
+    "Me desarrolló un equipo de estudiantes de la Universidad Santiago de Cali, "
+    "con la colaboración de David Sánchez."
+)
+_CREATOR_QUESTION = re.compile(
+    # Dirigida al asistente ("te", "tu"): "¿quien creo la politica?" es otra pregunta.
+    r"\b(quien|quienes)\s+te\s+(creo|crearon|hizo|hicieron|desarrollo|desarrollaron|programo|programaron|diseno)\b"
+    r"|\btu\s+(creador|creadora|desarrollador|desarrolladora|autor|autora)\b"
+)
+
+
+def asks_about_creator(question: str) -> bool:
+    """Si el mensaje pregunta quien creo al asistente, sin acentos ni mayusculas."""
+    decomposed = unicodedata.normalize("NFD", question.lower())
+    text = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return bool(_CREATOR_QUESTION.search(text))
+
+
+# Quien, donde, cuando, cuanto, a que hora o un contacto piden un dato concreto, nunca un
+# concepto. El router a veces marcaba "¿quien es el rector?" como concepto y se respondia
+# con la definicion del cargo.
+_SPECIFIC_DATA_QUESTION = re.compile(
+    r"\b(quien|quienes|donde|cuando|cuanto|cuanta|cuantos|cuantas|horario|hora|telefono|celular|correo|extension)\b"
+)
+
+
+def asks_specific_data(question: str) -> bool:
+    """Si el mensaje pide un dato concreto (persona, lugar, fecha, costo, contacto)."""
+    decomposed = unicodedata.normalize("NFD", question.lower())
+    text = "".join(c for c in decomposed if not unicodedata.combining(c))
+    return bool(_SPECIFIC_DATA_QUESTION.search(text))
+
+
+# Como hacer algo o que se necesita para ello es un tramite de esta universidad, nunca un
+# concepto: el router marcaba "requisitos para graduarme" como concepto y se explicaba de memoria.
+_PROCEDURE_QUESTION = re.compile(
+    r"\bcomo\s+(me\s+|lo\s+|la\s+)?(saco|solicito|pido|hago|tramito|obtengo|inscribo|reintegro|"
+    r"registro|cambio|retiro|homologo|valido|accedo|recupero|consigo|gestiono)\b"
+    r"|\brequisitos?\b|\bpasos\b|\btramites?\b|\bque\s+(necesito|debo|tengo que)\b"
+    r"|\b(quiero|necesito|puedo)\s+(cambiarme|retirarme|reintegrarme|graduarme|inscribirme|sacar|pedir|solicitar)\b"
+)
+
+
+# Terminos que fija el reglamento de la universidad. Con "¿que es ...?" llama3.1:8b los
+# mandaba a general siempre, y explicaba de memoria una "prueba de validacion" equivocada.
+_INSTITUTIONAL_TERM = re.compile(
+    r"\b(matricula|supletorios?|habilitacion|habilitar|validacion|suficiencia|cancelacion|"
+    r"adicion|reglamento|reclamacion|r-?ga\s?\d{3})\b"
+)
+
+
+def mentions_institutional_term(question: str) -> bool:
+    """Si el mensaje nombra un tramite o termino que define el reglamento de la universidad."""
+    return bool(_INSTITUTIONAL_TERM.search(_plain(question)))
+
+
+def asks_procedure(question: str) -> bool:
+    """Si el mensaje pregunta como hacer un tramite o que se necesita para hacerlo."""
+    return bool(_PROCEDURE_QUESTION.search(_plain(question)))
+
+
+# El modelo a veces reformula la frase de no-respuesta ("Lo siento, pero no encontre
+# informacion..."): sin reconocerla, no se anade a donde acudir.
+_NO_ANSWER_PARAPHRASE = re.compile(
+    # "encuentre": errata que el modelo produjo en las pruebas.
+    r"\bno\s+(encontre|encuentro|encuentre|tengo|cuento con|dispongo de|hay)\s+(la\s+|suficiente\s+)?informacion\b"
+    r"|\bno\s+se\s+encontro\s+informacion\b"
+)
+
+
+def says_no_answer(answer: str) -> bool:
+    """Si la respuesta del modelo equivale a la frase de no-respuesta."""
+    return NO_ANSWER_MESSAGE in answer or bool(_NO_ANSWER_PARAPHRASE.search(_plain(answer)))
+
+
+# El formato se ofrece y solo se entrega si el estudiante acepta o lo pide. Textos fijos:
+# la oferta lleva el nombre exacto del formato para reconocerlo en el turno siguiente.
+FORM_DELIVERY_MESSAGE = "Escanea el código QR para descargar el formato."
+FORMS_DELIVERY_MESSAGE = "Escanea los códigos QR para descargar los formatos."
+
+_AFFIRMATIVE = re.compile(
+    r"^\W*(si|sip|claro|dale|ok|okay|bueno|listo|perfecto|obvio|de una|por favor|porfa|"
+    r"me lo|pasamelo|mandamelo|enviamelo|muestramelo|quiero|lo quiero|va|vale)\b"
+)
+_FORM_REQUEST = re.compile(r"\bformatos?\b")
+
+
+def form_offer(names: list[str]) -> str:
+    if len(names) == 1:
+        return f"¿Quieres el formato {names[0]} para descargarlo?"
+    return f"¿Quieres los formatos {', '.join(names[:-1])} y {names[-1]} para descargarlos?"
+
+
+def form_delivery(count: int) -> str:
+    return FORM_DELIVERY_MESSAGE if count == 1 else FORMS_DELIVERY_MESSAGE
+
+
+def is_affirmative(message: str) -> bool:
+    """Respuesta corta de aceptacion ("si", "dale", "si porfa"). Una frase larga es otra pregunta."""
+    text = _plain(message)
+    return len(text.split()) <= 6 and bool(_AFFIRMATIVE.search(text))
+
+
+def asks_for_form(message: str) -> bool:
+    """El estudiante pide el formato directamente: se entrega sin preguntar."""
+    return bool(_FORM_REQUEST.search(_plain(message)))
+
+
+def _plain(text: str) -> str:
+    decomposed = unicodedata.normalize("NFD", text.lower())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
 # Identidad generica a proposito: el nombre de la institucion o del asistente no va en el
 # codigo. Quien lo quiera, lo escribe en una variante de prompt desde la UI.
-FIRST_TURN_GREETING = "¡Hola! Soy el asistente académico de la universidad."
+def _role(profile) -> str:
+    """"la asistente academica de la Universidad X" o "el asistente academico de la universidad"."""
+    feminine = profile.assistant_gender == "FEMININE"
+    role = "la asistente académica" if feminine else "el asistente académico"
+    institution = _with_article(profile.institution_name) if profile.institution_name else "la universidad"
+    return f"{role} de {institution}".replace(" de el ", " del ")
+
+
+_FEMININE_INSTITUTIONS = ("universidad", "institucion", "institución", "corporacion", "corporación", "fundacion", "fundación", "escuela")
+_MASCULINE_INSTITUTIONS = ("instituto", "colegio", "politecnico", "politécnico", "centro")
+
+
+def _with_article(name: str) -> str:
+    """"Universidad Santiago de Cali" -> "la Universidad Santiago de Cali"; si ya trae articulo, igual."""
+    first = name.split()[0].lower()
+    if first in ("la", "el", "los", "las"):
+        return name
+    if first in _FEMININE_INSTITUTIONS:
+        return f"la {name}"
+    if first in _MASCULINE_INSTITUTIONS:
+        return f"el {name}"
+    return name
+
+
+def greeting(profile) -> str:
+    """Saludo fijo del primer turno, con el nombre y la institucion del perfil."""
+    return f"¡Hola! Soy {profile.assistant_name}, {_role(profile)}."
+
+
+def identity_instructions(profile) -> str:
+    """Quien es el asistente. Va delante de cada prompt de sistema.
+
+    Sin el nombre, "Hola Sara" se interpretaba como el estudiante presentandose.
+    """
+    name = profile.assistant_name
+    lines = [
+        f"Te llamas {name} y eres {_role(profile)}. Si el estudiante te llama {name}, "
+        "te esta hablando a ti: no es su nombre.",
+        f"Habla de ti en {'femenino' if profile.assistant_gender == 'FEMININE' else 'masculino'}.",
+    ]
+    if profile.institution_short_name:
+        lines.append(f"La institucion tambien se conoce como {profile.institution_short_name}.")
+    if profile.city:
+        lines.append(f"Esta en {profile.city}.")
+    return " ".join(lines)
+
+
+def help_sentence(profile) -> str | None:
+    """A donde remitir cuando no hay respuesta, con los datos de atencion que haya."""
+    if not profile.help_office and not profile.website:
+        return None
+    parts = []
+    if profile.help_office:
+        place = f" ({profile.help_location})" if profile.help_location else ""
+        parts.append(f"Puedes consultarlo en {profile.help_office}{place}")
+        if profile.help_hours:
+            parts[-1] += f", {profile.help_hours}"
+    contact = [c for c in (profile.help_phone, profile.help_email) if c]
+    if contact:
+        parts.append(f"o comunicarte al {' / '.join(contact)}")
+    if profile.website:
+        parts.append(f"{'o revisar' if parts else 'Puedes revisar'} {profile.website}")
+    return " ".join(parts) + "."
+
+
+# Respuesta fija: con el nombre en el prompt, llama3.1:8b llego a contestar "me llamo Alexandra".
+_NAME_QUESTION = re.compile(r"\b(como te llamas|cual es tu nombre|tu nombre|quien eres|como te dicen)\b")
+
+
+def asks_assistant_name(question: str) -> bool:
+    return bool(_NAME_QUESTION.search(_plain(question)))
+
+
+def name_message(profile) -> str:
+    return f"Me llamo {profile.assistant_name}, soy {_role(profile)}. ¿En qué te puedo ayudar?"
+
 
 # Se anaden al prompt de sistema solo en el chat; /search son consultas sueltas.
 FIRST_TURN_INSTRUCTION = (

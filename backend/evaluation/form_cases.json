@@ -1,0 +1,32 @@
+{
+  "_nota": "Descripciones de ejemplo como las escribiria un administrador. Con los formatos reales cargados, reemplazarlas por las suyas y volver a calibrar FORM_MATCH_MIN_SCORE.",
+  "forms": {
+    "cancelacion_semestre": "Formato para solicitar la cancelación del semestre académico completo",
+    "cancelacion_cursos": "Formato para cancelar uno o varios cursos o materias de la matrícula",
+    "habilitacion": "Formato de solicitud de prueba de habilitación para cursos reprobados",
+    "certificado": "Formato para solicitar certificados de notas o de estudio",
+    "reingreso": "Formato de solicitud de reingreso para estudiantes que se retiraron",
+    "homologacion": "Formato para solicitar la homologación de materias cursadas en otra institución"
+  },
+  "cases": [
+    {"question": "¿Cómo cancelo el semestre?", "expected": "cancelacion_semestre"},
+    {"question": "Quiero retirarme este semestre, ¿qué tengo que llenar?", "expected": "cancelacion_semestre"},
+    {"question": "¿Cómo cancelo una materia?", "expected": "cancelacion_cursos"},
+    {"question": "Necesito cancelar dos cursos", "expected": "cancelacion_cursos"},
+    {"question": "¿Cómo pido una habilitación?", "expected": "habilitacion"},
+    {"question": "Perdí cálculo con 2.5, ¿puedo habilitar?", "expected": "habilitacion"},
+    {"question": "Necesito un certificado de notas", "expected": "certificado"},
+    {"question": "¿Dónde pido una constancia de estudio?", "expected": "certificado"},
+    {"question": "Me retiré hace un año y quiero volver a estudiar", "expected": "reingreso"},
+    {"question": "Vengo de otra universidad, ¿me reconocen las materias?", "expected": "homologacion"},
+
+    {"question": "¿Quién es el secretario general?", "expected": null},
+    {"question": "¿Qué porcentaje del presupuesto se destina a bienestar?", "expected": null},
+    {"question": "¿Dónde queda la biblioteca?", "expected": null},
+    {"question": "¿Qué dice la política de bienestar institucional?", "expected": null},
+    {"question": "¿Quién preside el Consejo Directivo?", "expected": null},
+    {"question": "¿Cuánto cuesta la matrícula?", "expected": null},
+    {"question": "¿Qué becas ofrece la universidad?", "expected": null},
+    {"question": "¿A qué hora abre registro académico?", "expected": null}
+  ]
+}

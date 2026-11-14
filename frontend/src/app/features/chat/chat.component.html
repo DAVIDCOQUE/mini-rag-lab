@@ -39,6 +39,18 @@
           <div class="msg__stack">
             <div class="msg__body">{{ msg.content }}</div>
 
+            @for (file of msg.downloads ?? []; track file.url) {
+              <figure class="msg__qr">
+                <img [src]="file.qr_url" [alt]="file.filename" width="160" height="160" />
+                <figcaption>
+                  <a class="msg__download" [href]="file.url" target="_blank" rel="noopener">
+                    <mat-icon>download</mat-icon>
+                    <span>{{ file.filename }}</span>
+                  </a>
+                </figcaption>
+              </figure>
+            }
+
             <button
               type="button"
               class="msg__copy"

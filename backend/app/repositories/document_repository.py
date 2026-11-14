@@ -20,6 +20,12 @@ def list_all(db: Session) -> Sequence[Document]:
     return db.execute(stmt).scalars().all()
 
 
+def list_forms(db: Session) -> Sequence[Document]:
+    """Formatos descargables que tienen descripcion con la que compararlos."""
+    stmt = select(Document).where(Document.kind == "FORM", Document.description.is_not(None))
+    return db.execute(stmt).scalars().all()
+
+
 def get(db: Session, document_id: uuid.UUID) -> Document | None:
     return db.get(Document, document_id)
 

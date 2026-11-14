@@ -13,23 +13,32 @@ from app.schemas.chat import ChatTurn
 ROUTER_SYSTEM_PROMPT = """Eres el enrutador del asistente de un quiosco universitario. \
 Clasificas el MENSAJE A CLASIFICAR del estudiante en una ruta:
 - institutional: pide un dato propio de la universidad (normas, acuerdos, politicas, tramites, \
-requisitos, personas, cargos, lugares, horarios, costos). Tambien las reglas academicas: notas, \
-asistencia, perder, cancelar o habilitar materias, matricula y grado; aunque suenen generales, \
-cada universidad las fija en su reglamento. Y los seguimientos de un tema institucional \
-("¿y cuanto cuesta?").
-- general: tema academico general que no depende de esta universidad.
+requisitos, personas, cargos, lugares, horarios, costos). Tambien cualquier tramite o regla \
+academica del estudiante (matricular, agregar, cancelar o cambiar materias, examenes, notas, \
+asistencia, grado, certificados, reintegro, cambio de carrera) y que significa cada uno \
+("¿que es la matricula academica?"): aunque suenen generales, cada universidad los fija en su \
+reglamento. Tambien problemas con los sistemas o servicios de la universidad (contrasenas, \
+plataformas, carne). Y los seguimientos de un tema institucional ("¿y cuanto cuesta?").
+- general: tema academico general que no depende de esta universidad (como estudiar, que es \
+una tesis, normas APA).
+Esto es un quiosco de la universidad: ante la duda entre institutional y general, elige institutional.
 - conversation: SOLO saludos, despedidas, agradecimientos o preguntas sobre la propia charla \
-(su nombre, que dijo antes).
+(su nombre, que dijo antes) o sobre el propio asistente (quien es, quien lo creo).
 - off_topic: nada que ver con lo academico ni con la universidad (cocina, deportes, compras, \
 entretenimiento, politica nacional, cultura general, pedir que escribas codigo o tareas).
 El historial solo sirve para entender referencias; clasifica unicamente el mensaje.
 Primero escribe "reason" (una frase), luego "route", y si es institutional escribe en "query" una \
 pregunta autonoma resolviendo "eso", "y...", etc.
+Por ultimo "concept": true si pregunta que significa un concepto academico que existe en cualquier \
+universidad (que es un credito, que es el promedio ponderado); false si pide un dato de esta \
+universidad: personas, cargos, lugares, horarios, fechas, costos, telefonos o los pasos de un tramite.
 
 Ejemplos:
 "¿Quien es el rector?" -> institutional
 "¿Que dice el reglamento estudiantil?" -> institutional
 "(tras hablar de matricula) ¿y cuando cierra?" -> institutional, query: "¿Cuando cierra la matricula?"
+"Olvide mi contrasena de la plataforma" -> institutional
+"¿Como saco un certificado de notas?" -> institutional, concept: false
 "¿Que es una tesis?" -> general
 "Hola" -> conversation
 "¿Como me llamo?" -> conversation
@@ -50,8 +59,9 @@ ROUTER_SCHEMA = {
         "reason": {"type": "string"},
         "route": {"type": "string", "enum": list(_LABELS)},
         "query": {"type": "string"},
+        "concept": {"type": "boolean"},
     },
-    "required": ["reason", "route", "query"],
+    "required": ["reason", "route", "query", "concept"],
 }
 
 # Para decidir basta el hilo reciente; el historial completo encareceria cada mensaje.
@@ -80,4 +90,5 @@ def decide(question: str, history: Sequence[ChatTurn] | None) -> RouteDecision:
         search_query=query if route is Route.INSTITUTIONAL and query else question,
         router="llm",
         reason=str(data.get("reason") or "").strip() or None,
+        is_concept=data.get("concept") is True,
     )

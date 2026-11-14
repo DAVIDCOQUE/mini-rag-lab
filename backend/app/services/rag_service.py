@@ -7,18 +7,37 @@ from qdrant_client.models import ScoredPoint
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.assistant_profile import AssistantProfile
+from app.models.document import Document
 from app.rag import llm_router
+from app.rag.form_matcher import FormMatcher, display_name, offered_in
 from app.rag.llm_service import LLMError, chat
 from app.rag.prompt_builder import (
-    FIRST_TURN_GREETING,
+    GENERAL_NOTICE,
     GENERAL_PROMPT,
     NO_ANSWER_MESSAGE,
+    CONCEPT_FALLBACK_PROMPT,
+    CREATOR_MESSAGE,
     OFF_TOPIC_MESSAGE,
     SMALLTALK_PROMPT,
+    asks_about_creator,
+    asks_assistant_name,
+    asks_for_form,
+    asks_procedure,
+    asks_specific_data,
+    mentions_institutional_term,
+    says_no_answer,
     Message,
     build_context_message,
     build_messages,
+    greeting,
+    help_sentence,
+    identity_instructions,
     estimate_tokens,
+    form_delivery,
+    form_offer,
+    is_affirmative,
+    name_message,
     fit_history,
     institutional_instructions,
     with_turn_instruction,
@@ -26,12 +45,14 @@ from app.rag.prompt_builder import (
 from app.rag.query_router import QueryRouter, Route, RouteDecision, expand_follow_up
 from app.rag.retriever import Retriever
 from app.schemas.chat import ChatTurn
-from app.services import prompt_service
+from app.repositories import document_repository
+from app.services import profile_service, prompt_service
 
 logger = logging.getLogger("mini_rag_lab")
 
 retriever = Retriever()
 router = QueryRouter()
+form_matcher = FormMatcher()
 
 # Ventana que se deja libre para la respuesta del modelo al repartir el contexto.
 ANSWER_RESERVE_TOKENS = 1024
@@ -73,12 +94,19 @@ class RagOutcome:
     router: str | None = None
     route_reason: str | None = None
     search_query: str | None = None
+    # Formatos descargables que encajan con la pregunta, con su similitud. Van aparte
+    # de points: el asistente nunca responde con el contenido de un formato.
+    forms: list[tuple[Document, float]] = field(default_factory=list)
 
 
 def route_query(
     question: str, history: Sequence[ChatTurn] | None = None, mode: str | None = None
 ) -> RouteDecision:
     """Decide el camino con el router configurado; el de embeddings respalda al LLM."""
+    return _keep_institutional_terms(_decide_route(question, history, mode), question)
+
+
+def _decide_route(question: str, history: Sequence[ChatTurn] | None, mode: str | None) -> RouteDecision:
     if (mode or settings.ROUTER_MODE) == "llm":
         try:
             return llm_router.decide(question, history)
@@ -91,6 +119,18 @@ def route_query(
     return RouteDecision(
         route=route, search_query=search_query, router="embedding", scores=scores, vector=vector
     )
+
+
+def _keep_institutional_terms(decision: RouteDecision, question: str) -> RouteDecision:
+    """Un termino del reglamento se busca en los documentos aunque el router diga general.
+
+    Si la guia no lo cubre, se explica como concepto con su aviso (is_concept).
+    """
+    if decision.route is Route.GENERAL and mentions_institutional_term(question):
+        decision.route = Route.INSTITUTIONAL
+        decision.is_concept = True
+        decision.reason = f"{decision.reason or ''} [termino del reglamento: se busca en los documentos]".strip()
+    return decision
 
 
 def answer_question(
@@ -109,9 +149,23 @@ def answer_question(
     """
     top_k = limit or settings.CHAT_TOP_K
 
+    # "Si" a un formato ofrecido: se entrega sin pasar por el router, que veria un
+    # mensaje suelto sin tema.
+    accepted = _accepted_offer(db, question, history)
+    if accepted:
+        return RagOutcome(
+            answer=form_delivery(len(accepted)),
+            route=Route.SMALLTALK,
+            router="offer",
+            forms=[(form, 1.0) for form in accepted],
+        )
+
+    # Una lectura por mensaje: lo que el administrador cambie se aplica al siguiente.
+    profile = profile_service.current(db)
+
     if not settings.ROUTER_ENABLED:
         decision = RouteDecision(route=Route.INSTITUTIONAL, search_query=question, router="disabled")
-        return _institutional(db, question, top_k, prompt_code, decision, None, history)
+        return _institutional(db, question, top_k, prompt_code, decision, None, history, profile)
 
     started = time.perf_counter()
     decision = route_query(question, history)
@@ -121,17 +175,31 @@ def answer_question(
     )
 
     if decision.route is Route.INSTITUTIONAL:
-        return _institutional(db, question, top_k, prompt_code, decision, routing_ms, history)
+        return _institutional(db, question, top_k, prompt_code, decision, routing_ms, history, profile)
 
     trace = _trace(decision, routing_ms)
 
     # Fuera de ambito no merece una generacion: la respuesta no depende del mensaje.
     if decision.route is Route.OFF_TOPIC:
-        return RagOutcome(answer=_with_greeting(OFF_TOPIC_MESSAGE, history), **trace)
+        return RagOutcome(answer=_with_greeting(OFF_TOPIC_MESSAGE, history, profile), **trace)
+
+    if decision.route is Route.SMALLTALK and asks_about_creator(question):
+        return RagOutcome(answer=_with_greeting(CREATOR_MESSAGE, history, profile), **trace)
+
+    if decision.route is Route.SMALLTALK and asks_assistant_name(question):
+        # En el primer turno el saludo ya dice el nombre: no se repite.
+        first_turn = history is not None and not history
+        answer = f"{greeting(profile)} ¿En qué te puedo ayudar?" if first_turn else name_message(profile)
+        return RagOutcome(answer=answer, **trace)
 
     system_prompt = SMALLTALK_PROMPT if decision.route is Route.SMALLTALK else GENERAL_PROMPT
     generation_started = time.perf_counter()
-    answer = chat(_conversation(system_prompt, question, history))
+    # El saludo lo pone el codigo: dejado al modelo, se presentaba sin su nombre.
+    answer = chat(_conversation(system_prompt, question, history, llm_greets=False, profile=profile))
+    if decision.route is Route.GENERAL:
+        # Aviso fijo: pedido en el prompt, el modelo lo omitia a veces.
+        answer = f"{answer}\n\n{GENERAL_NOTICE}"
+    answer = _with_greeting(answer, history, profile)
     return RagOutcome(
         answer=answer,
         generation_ms=round((time.perf_counter() - generation_started) * 1000, 1),
@@ -147,6 +215,7 @@ def _institutional(
     decision: RouteDecision,
     routing_ms: float | None,
     history: Sequence[ChatTurn] | None,
+    profile: AssistantProfile,
 ) -> RagOutcome:
     """Camino completo: recuperar contexto y responder con el a la vista.
 
@@ -154,7 +223,9 @@ def _institutional(
     responde a la original: el historial le da el resto del contexto.
     """
     started = time.perf_counter()
-    points = retriever.search(decision.search_query, top_k, vector=decision.vector)
+    # El mismo vector sirve para buscar y para elegir formato: se calcula una sola vez.
+    vector = decision.vector or retriever.embedding_service.embed_query(decision.search_query)
+    points = retriever.search(decision.search_query, top_k, vector=vector)
     retrieval_ms = (time.perf_counter() - started) * 1000
 
     system_prompt, resolved_code = prompt_service.resolve_prompt(db, prompt_code)
@@ -169,12 +240,18 @@ def _institutional(
             len(points),
             points[0].score if points else None,
         )
+        answer = _with_greeting(_without_documents(decision, question, history, profile), history, profile)
+        # Sin informacion no se ofrece formato: solo se entrega si lo pidio expresamente.
+        # Sin respuesta tampoco hay codigo citado: decide la descripcion.
+        forms = form_matcher.match(db, decision.search_query, vector) if asks_for_form(question) else []
+        answer, delivered = _present_forms(answer, forms, question)
         return RagOutcome(
-            answer=_with_greeting(NO_ANSWER_MESSAGE, history),
+            answer=answer,
             points=points,
             prompt_code=resolved_code,
             generation_skipped=True,
             retrieval_ms=round(retrieval_ms, 1),
+            forms=delivered,
             **trace,
         )
 
@@ -187,8 +264,16 @@ def _institutional(
         build_context_message(question, chunks),
         history,
         llm_greets=False,
+        profile=profile,
     )
-    answer = _with_greeting(chat(messages), history)
+    answer = chat(messages)
+    forms = []
+    # El modelo tambien puede concluir que el contexto no responde: mismo respaldo.
+    if says_no_answer(answer):
+        answer = _without_documents(decision, question, history, profile)
+    else:
+        forms = form_matcher.match(db, decision.search_query, vector, answer=answer, context="\n".join(chunks))
+    answer, delivered = _present_forms(_with_greeting(answer, history, profile), forms, question)
     generation_ms = (time.perf_counter() - generation_started) * 1000
     logger.info(
         "Respuesta del modelo '%s' con el prompt '%s' en %.2fs",
@@ -203,8 +288,51 @@ def _institutional(
         prompt_code=resolved_code,
         retrieval_ms=round(retrieval_ms, 1),
         generation_ms=round(generation_ms, 1),
+        forms=delivered,
         **trace,
     )
+
+
+def _present_forms(
+    answer: str, forms: list[tuple[Document, float]], question: str
+) -> tuple[str, list[tuple[Document, float]]]:
+    """Ofrece los formatos al final de la respuesta, o los entrega si el estudiante los pidio.
+
+    Devuelve el texto y los formatos entregados: solo esos llevan QR.
+    """
+    if not forms:
+        return answer, []
+    if asks_for_form(question):
+        return f"{answer}\n\n{form_delivery(len(forms))}", forms
+    names = [display_name(form) for form, _ in forms]
+    return f"{answer}\n\n{form_offer(names)}", []
+
+
+def _accepted_offer(db: Session, question: str, history: Sequence[ChatTurn] | None) -> list[Document]:
+    """Formatos que el asistente ofrecio en su ultimo mensaje, si ahora el estudiante acepta."""
+    if not history or history[-1].role != "assistant" or not is_affirmative(question):
+        return []
+    return offered_in(document_repository.list_forms(db), history[-1].content)
+
+
+def _without_documents(
+    decision: RouteDecision, question: str, history: Sequence[ChatTurn] | None, profile: AssistantProfile
+) -> str:
+    """Respuesta cuando los documentos no cubren la pregunta.
+
+    Un concepto general se explica con aviso fijo. Un dato de la universidad nunca se
+    genera: en las pruebas el modelo invento la ubicacion de la Secretaria Academica.
+    """
+    if (
+        not (settings.CHAT_CONCEPT_FALLBACK and decision.is_concept)
+        or asks_specific_data(question)
+        or asks_procedure(question)
+    ):
+        # A donde ir lo pone el perfil: es lo unico util cuando no hay respuesta.
+        help_text = help_sentence(profile)
+        return f"{NO_ANSWER_MESSAGE} {help_text}" if help_text else NO_ANSWER_MESSAGE
+    messages = _conversation(CONCEPT_FALLBACK_PROMPT, question, history, llm_greets=False, profile=profile)
+    return f"{chat(messages)}\n\n{GENERAL_NOTICE}"
 
 
 def _trace(decision: RouteDecision, routing_ms: float | None) -> dict:
@@ -224,8 +352,11 @@ def _conversation(
     user_content: str,
     history: Sequence[ChatTurn] | None,
     llm_greets: bool = True,
+    profile: AssistantProfile | None = None,
 ) -> list[Message]:
     """Mensajes para el LLM con todo el historial que quepa sin desbordar la ventana."""
+    if profile is not None:
+        system_prompt = f"{identity_instructions(profile)}\n\n{system_prompt}"
     system = with_turn_instruction(system_prompt, history, llm_greets)
     room = (
         settings.LLM_NUM_CTX
@@ -241,8 +372,8 @@ def _conversation(
     return build_messages(system, user_content, turns)
 
 
-def _with_greeting(message: str, history: Sequence[ChatTurn] | None) -> str:
+def _with_greeting(message: str, history: Sequence[ChatTurn] | None, profile: AssistantProfile) -> str:
     """Antepone el saludo fijo en el primer turno, donde el modelo no saluda por si mismo."""
     if history is not None and not history:
-        return f"{FIRST_TURN_GREETING} {message}"
+        return f"{greeting(profile)} {message}"
     return message

@@ -15,7 +15,7 @@ class LLMError(Exception):
 
 def chat(messages: list[dict[str, str]]) -> str:
     """Envia la conversacion a Ollama (/api/chat) y devuelve el texto generado."""
-    data = _post_chat({"messages": messages}, timeout=120.0)
+    data = _post_chat({"messages": messages}, timeout=120.0, temperature=settings.LLM_TEMPERATURE)
     # Solo el conteo, nunca el texto: el historial trae datos personales del estudiante.
     # Excluye lo que Ollama reutilizo de la consulta anterior.
     logger.info(

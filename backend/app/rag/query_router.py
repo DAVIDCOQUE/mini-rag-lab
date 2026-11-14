@@ -33,6 +33,10 @@ class RouteDecision:
     router: str  # "llm" o "embedding"
     reason: str | None = None
     scores: dict[str, float] = field(default_factory=dict)
+    # Pregunta por un concepto general (que es un credito) y no por un dato de esta
+    # universidad. Sin documentos que lo cubran, solo un concepto se responde de memoria.
+    # El router de embeddings no lo distingue: queda en False, que es lo seguro.
+    is_concept: bool = False
     # Embedding de search_query si ya se calculo, para no repetirlo al buscar.
     vector: list[float] | None = None
 
@@ -60,6 +64,10 @@ ROUTE_EXAMPLES: dict[Route, list[str]] = {
         "como saco el carne estudiantil",
         "cuando empiezan las clases y el calendario academico",
         "donde esta la oficina de bienestar universitario",
+        # "Quiero ..." se parecia a la charla: sin estos, "quiero cambiarme de grupo" iba a smalltalk.
+        "quiero cambiarme de grupo",
+        "quiero cambiarme de carrera",
+        "olvide mi contrasena del sistema academico",
     ],
     Route.GENERAL: [
         "que es un credito academico",
@@ -80,6 +88,7 @@ ROUTE_EXAMPLES: dict[Route, list[str]] = {
         "hasta luego",
         "como estas",
         "quien eres",
+        "quien te creo o te programo",
         "como me llamo",
         "que te pregunte antes",
         "recuerdas lo que te dije",

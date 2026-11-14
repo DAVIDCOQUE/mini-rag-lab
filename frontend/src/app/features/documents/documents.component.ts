@@ -15,11 +15,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import {
   DocumentItem,
+  DocumentKind,
   DocumentStatus,
+  DocumentUpdate,
   IndexedChunks,
   ProcessingResult,
 } from '../../core/models/document.model';
@@ -46,6 +50,8 @@ const STATUS_VARIANTS: Record<DocumentStatus, string> = {
     MatFormFieldModule,
     MatInputModule,
     MatProgressBarModule,
+    MatButtonToggleModule,
+    MatCheckboxModule,
   ],
   templateUrl: './documents.component.html',
   styleUrl: './documents.component.scss',
@@ -72,6 +78,24 @@ export class DocumentsComponent {
           process: 'Procesar',
           index: 'Indexar',
           inspect: 'Inspeccionar',
+          kindKnowledge: 'Información',
+          kindForm: 'Formato',
+          kindHint: 'Información: el asistente responde con su contenido. Formato: no se lee, se ofrece para descargar con un QR.',
+          descriptionLabel: 'Para qué sirve el formato',
+          descriptionHint: 'Ej.: Formato para solicitar la cancelación del semestre completo. Se ofrece cuando la pregunta se parece a esta descripción.',
+          formCardHint: 'Formato descargable: no se indexa. El quiosco lo ofrece con un QR cuando la pregunta encaja con:',
+          codeLabel: 'Código del formato (opcional)',
+          codeHint: 'Ej.: R-GA004. Si la guía cita este código para un trámite, se ofrece este formato. Vacío al subir: se lee del PDF.',
+          codeBadge: 'Código',
+          publicUrlLabel: 'Enlace público (opcional)',
+          publicUrlHint: 'Enlace de OneDrive o Drive con acceso para cualquiera. Si existe, el QR lleva aquí y no caduca.',
+          cloudCheck: 'Subir a OneDrive y usar ese enlace',
+          cloudCheckReplace: 'Volver a subir a OneDrive (reemplaza el archivo, el enlace se mantiene)',
+          openPublicUrl: 'Abrir enlace público',
+          dialogCloudTitle: 'Subir a OneDrive',
+          dialogCloudBody: (name: string) =>
+            `¿Subir “${name}” a OneDrive? Quedará visible para cualquiera que tenga el enlace.`,
+          confirmCloud: 'Subir',
           edit: 'Renombrar documento',
           remove: 'Eliminar documento',
           empty: 'Todavía no hay documentos. Sube un PDF para empezar a construir la biblioteca.',
@@ -130,6 +154,8 @@ export class DocumentsComponent {
             indexFailed: 'No se pudo indexar el documento.',
             vectorFailed: 'No se pudo consultar la base vectorial.',
             indexed: (chunks: number) => `Indexado: ${chunks} chunks en Qdrant.`,
+            cloudUploaded: 'Formato subido a OneDrive. El QR ya usa su enlace.',
+            cloudFailed: 'No se pudo subir a OneDrive.',
           },
         }
       : {
@@ -140,6 +166,24 @@ export class DocumentsComponent {
           process: 'Process',
           index: 'Index',
           inspect: 'Inspect',
+          kindKnowledge: 'Information',
+          kindForm: 'Form',
+          kindHint: 'Information: the assistant answers with its content. Form: never read, offered for download with a QR code.',
+          descriptionLabel: 'What the form is for',
+          descriptionHint: 'E.g. Form to request cancelling the whole semester. It is offered when the question resembles this description.',
+          formCardHint: 'Downloadable form: not indexed. The kiosk offers it with a QR code when the question matches:',
+          codeLabel: 'Form code (optional)',
+          codeHint: 'E.g. R-GA004. If the guide cites this code for a procedure, this form is offered. Left empty on upload: read from the PDF.',
+          codeBadge: 'Code',
+          publicUrlLabel: 'Public link (optional)',
+          publicUrlHint: 'OneDrive or Drive link anyone can open. If set, the QR code points here and never expires.',
+          cloudCheck: 'Upload to OneDrive and use that link',
+          cloudCheckReplace: 'Upload to OneDrive again (replaces the file, keeps the link)',
+          openPublicUrl: 'Open public link',
+          dialogCloudTitle: 'Upload to OneDrive',
+          dialogCloudBody: (name: string) =>
+            `Upload “${name}” to OneDrive? Anyone with the link will be able to view it.`,
+          confirmCloud: 'Upload',
           edit: 'Rename document',
           remove: 'Delete document',
           empty: 'No documents yet. Upload a PDF to start building the library.',
@@ -197,6 +241,8 @@ export class DocumentsComponent {
             indexFailed: 'Could not index the document.',
             vectorFailed: 'Could not query the vector store.',
             indexed: (chunks: number) => `Indexed: ${chunks} chunks in Qdrant.`,
+            cloudUploaded: 'Form uploaded to OneDrive. The QR code now uses its link.',
+            cloudFailed: 'Could not upload to OneDrive.',
           },
         };
   });
@@ -231,7 +277,21 @@ export class DocumentsComponent {
   // Estado de los dialogos.
   readonly uploadFile = signal<File | null>(null);
   uploadName = '';
+  uploadKind: DocumentKind = 'KNOWLEDGE';
+  uploadDescription = '';
+  uploadCode = '';
+  uploadPublicUrl = '';
+  uploadToCloud = false;
   editName = '';
+  editKind: DocumentKind = 'KNOWLEDGE';
+  editDescription = '';
+  editCode = '';
+  editPublicUrl = '';
+  editToCloud = false;
+  editHasCloudFile = false;
+  // El check de OneDrive solo aparece si el backend tiene la subida configurada.
+  readonly cloudEnabled = signal(false);
+  readonly cloudTarget = signal('');
   readonly deleteTarget = signal<DocumentItem | null>(null);
   readonly processTarget = signal<DocumentItem | null>(null);
   readonly processResult = signal<ProcessingResult | null>(null);
@@ -243,9 +303,14 @@ export class DocumentsComponent {
   private readonly deleteDialog = viewChild.required<TemplateRef<unknown>>('deleteDialog');
   private readonly processDialog = viewChild.required<TemplateRef<unknown>>('processDialog');
   private readonly indexedDialog = viewChild.required<TemplateRef<unknown>>('indexedDialog');
+  private readonly cloudDialog = viewChild.required<TemplateRef<unknown>>('cloudDialog');
 
   constructor() {
     this.refresh();
+    this.service.cloudStatus().subscribe({
+      next: (status) => this.cloudEnabled.set(status.enabled),
+      error: () => this.cloudEnabled.set(false),
+    });
   }
 
   refresh(): void {
@@ -266,13 +331,26 @@ export class DocumentsComponent {
   openUpload(): void {
     this.uploadFile.set(null);
     this.uploadName = '';
+    this.uploadKind = 'KNOWLEDGE';
+    this.uploadDescription = '';
+    this.uploadCode = '';
+    this.uploadPublicUrl = '';
+    this.uploadToCloud = false;
     this.dialog
       .open(this.uploadDialog(), { width: '480px' })
       .afterClosed()
       .subscribe((confirmed) => {
         const file = this.uploadFile();
         if (!confirmed || !file) return;
-        this.upload(file, this.uploadName.trim());
+        this.upload(
+          file,
+          this.uploadName.trim(),
+          this.uploadKind,
+          this.uploadDescription.trim(),
+          this.uploadCode.trim(),
+          this.uploadPublicUrl.trim(),
+          this.uploadKind === 'FORM' && this.uploadToCloud,
+        );
       });
   }
 
@@ -288,21 +366,48 @@ export class DocumentsComponent {
     if (file && !this.uploadName) this.uploadName = file.name;
   }
 
-  // --- Editar (solo nombre visible) ---
+  // --- Editar (nombre visible, tipo y descripcion) ---
   openEdit(doc: DocumentItem): void {
     this.editName = doc.original_name;
+    this.editKind = doc.kind;
+    this.editDescription = doc.description ?? '';
+    this.editCode = doc.form_code ?? '';
+    this.editPublicUrl = doc.public_url ?? '';
+    this.editToCloud = false;
+    this.editHasCloudFile = !!doc.public_url;
     this.dialog
-      .open(this.editDialog(), { width: '480px' })
+      .open(this.editDialog(), { width: '520px' })
       .afterClosed()
       .subscribe((confirmed) => {
         const name = this.editName.trim();
-        if (!confirmed || !name || name === doc.original_name) return;
+        const description = this.editDescription.trim();
+        if (!confirmed || !name) return;
+        const toCloud = this.editKind === 'FORM' && this.editToCloud;
+        const changes: DocumentUpdate = {};
+        if (name !== doc.original_name) changes.original_name = name;
+        if (this.editKind !== doc.kind) changes.kind = this.editKind;
+        if (description !== (doc.description ?? '')) changes.description = description || null;
+        const code = this.editCode.trim();
+        if (code !== (doc.form_code ?? '')) changes.form_code = code || null;
+        const publicUrl = this.editPublicUrl.trim();
+        // Con la subida marcada el enlace lo pone OneDrive: el escrito a mano se ignora.
+        if (!toCloud && publicUrl !== (doc.public_url ?? '')) changes.public_url = publicUrl || null;
+        if (Object.keys(changes).length === 0) {
+          if (toCloud) this.confirmCloudUpload(doc.id, name, this.copy().toasts.updated, false);
+          return;
+        }
         this.busy.set(true);
-        this.service.update(doc.id, { original_name: name }).subscribe({
-          next: () => this.afterMutation(this.copy().toasts.updated),
-          error: () => this.fail(this.copy().toasts.updateFailed),
+        this.service.update(doc.id, changes).subscribe({
+          next: () => this.confirmCloudUpload(doc.id, name, this.copy().toasts.updated, toCloud),
+          // El backend explica por que (p. ej. un formato sin descripcion).
+          error: (err) => this.fail(err?.error?.detail ?? this.copy().toasts.updateFailed),
         });
       });
+  }
+
+  // Un formato sin descripcion no se puede ofrecer: el backend lo rechazaria.
+  canSaveKind(kind: DocumentKind, description: string): boolean {
+    return kind === 'KNOWLEDGE' || description.trim().length > 0;
   }
 
   // --- Eliminar ---
@@ -390,22 +495,62 @@ export class DocumentsComponent {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  private upload(file: File, visibleName?: string): void {
+  private upload(
+    file: File,
+    visibleName: string,
+    kind: DocumentKind,
+    description: string,
+    formCode: string,
+    publicUrl: string,
+    toCloud: boolean,
+  ): void {
     this.busy.set(true);
-    this.service.upload(file).subscribe({
+    const uploaded = this.copy().toasts.uploaded;
+    // Con la subida marcada el enlace lo pone OneDrive: el escrito a mano se ignora.
+    this.service.upload(file, kind, description, formCode, toCloud ? '' : publicUrl).subscribe({
       next: (created) => {
+        const name = visibleName || created.original_name;
+        const next = () => this.confirmCloudUpload(created.id, name, uploaded, toCloud);
         if (visibleName && visibleName !== created.original_name) {
           // Nombre visible personalizado desde el dialogo de subida.
           this.service.update(created.id, { original_name: visibleName }).subscribe({
-            next: () => this.afterMutation(this.copy().toasts.uploaded),
-            error: () => this.afterMutation(this.copy().toasts.uploaded),
+            next,
+            error: next,
           });
         } else {
-          this.afterMutation(this.copy().toasts.uploaded);
+          next();
         }
       },
-      error: () => this.fail(this.copy().toasts.uploadFailed),
+      // El backend explica por que (p. ej. un enlace publico que no es http).
+      error: (err) => this.fail(err?.error?.detail ?? this.copy().toasts.uploadFailed),
     });
+  }
+
+  // Pregunta antes de publicar: el archivo queda abierto a cualquiera con el enlace.
+  private confirmCloudUpload(id: string, name: string, savedMessage: string, wanted: boolean): void {
+    if (!wanted) {
+      this.afterMutation(savedMessage);
+      return;
+    }
+    this.cloudTarget.set(name);
+    this.dialog
+      .open(this.cloudDialog(), { width: '420px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          this.afterMutation(savedMessage);
+          return;
+        }
+        this.busy.set(true);
+        this.service.uploadToCloud(id).subscribe({
+          next: () => this.afterMutation(this.copy().toasts.cloudUploaded),
+          // El documento ya quedo guardado: se recarga igual para reflejarlo.
+          error: (err) => {
+            this.fail(err?.error?.detail ?? this.copy().toasts.cloudFailed);
+            this.refresh();
+          },
+        });
+      });
   }
 
   private afterMutation(message: string): void {

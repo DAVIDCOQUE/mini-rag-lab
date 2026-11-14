@@ -15,9 +15,22 @@ class Settings(BaseSettings):
     )
 
     # --- Aplicacion ---
-    PROJECT_NAME: str = "Mini RAG Lab"
+    PROJECT_NAME: str = "Sara"
     VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    # True imprime cada consulta SQL: solo para depurar en local.
+    DEBUG: bool = False
+
+    # --- Acceso al mantenedor ---
+    # Hash de la contrasena compartida, generado con `python -m scripts.hash_password`.
+    # Vacio: el mantenedor queda abierto (solo para desarrollo; se avisa al arrancar).
+    ADMIN_PASSWORD_HASH: str = ""
+    # Firma de las sesiones. Vacio: una aleatoria por arranque (reiniciar cierra sesiones).
+    AUTH_SECRET: str = ""
+    AUTH_TOKEN_TTL_HOURS: int = 8
+    # Opcional: si se define, /chat exige la cabecera X-Kiosk-Key (o una sesion del mantenedor).
+    KIOSK_API_KEY: str = ""
+    # Mensajes por minuto a /chat desde una misma IP; protege la GPU de rafagas.
+    CHAT_RATE_LIMIT_PER_MINUTE: int = 20
     API_PREFIX: str = "/api"
 
     # --- Servidor (uvicorn) ---
@@ -45,6 +58,9 @@ class Settings(BaseSettings):
     # Debe ser constante: si cambia entre peticiones, Ollama recarga el modelo. 16K cabe
     # en una GPU de 12 GB junto a bge-m3; con 32K Ollama expulsa el de embeddings.
     LLM_NUM_CTX: int = 16384
+    # Temperatura de las respuestas. Con la de Ollama por defecto (0.8) la misma pregunta
+    # salia bien o mal segun la ejecucion; un quiosco informativo quiere respuestas estables.
+    LLM_TEMPERATURE: float = 0.1
 
     # --- Reranking (cross-encoder via FastEmbed) ---
     RERANK_ENABLED: bool = True
@@ -61,12 +77,22 @@ class Settings(BaseSettings):
     # RERANK_ENABLED este umbral deja de tener sentido (la escala cambia a similitud
     # coseno) y deberia ajustarse o dejar el filtro inefectivo a proposito.
     CHAT_MIN_SCORE: float = -1.5
+    # Si la guia no cubre la pregunta y es un concepto general, responder de memoria con
+    # aviso. Un dato de la universidad (lugar, persona, costo) nunca: se inventaba.
+    CHAT_CONCEPT_FALLBACK: bool = True
     # Tokens maximos de historial que viajan al LLM. Lo que cuesta tiempo es lo enviado
     # (~1900 tokens/s de lectura en una RTX 3060), no el tamano de la ventana.
     CHAT_HISTORY_MAX_TOKENS: int = 6000
     # Las respuestas previas del asistente se recortan a este largo dentro del historial:
     # son lo que mas pesa y su detalle ya no hace falta para seguir el hilo.
     CHAT_HISTORY_ANSWER_CHARS: int = 600
+
+    # --- Log de conversaciones ---
+    # Guarda cada turno de /chat para revisar que se pregunta y donde falla. El texto se
+    # guarda con cedulas, correos y telefonos enmascarados, y se borra a los N dias
+    # (Ley 1581: no acumular datos personales sin necesidad).
+    CHAT_LOG_ENABLED: bool = True
+    CHAT_LOG_RETENTION_DAYS: int = 30
 
     # --- Router de consultas ---
     # Clasifica la consulta antes de recuperar: solo el camino institucional pasa por
@@ -88,6 +114,36 @@ class Settings(BaseSettings):
     # --- Almacenamiento de documentos ---
     STORAGE_DIR: str = "storage"
     MAX_UPLOAD_MB: int = 20
+
+    # --- Descarga de formatos por QR ---
+    # Direccion con la que el celular del estudiante llega al backend: es la que va
+    # dentro del QR. "localhost" solo sirve para probar desde la misma maquina.
+    PUBLIC_BASE_URL: str = "https://drive.google.com/drive/folders/1oOmFdGjuzvdbkFLMZiyRlHMi8JyxjRdd?usp=sharing"
+    DOWNLOAD_LINK_TTL_MINUTES: int = 15
+    # Similitud coseno entre la pregunta y la descripcion de un formato, calibradas con
+    # evaluation/evaluate_forms.py. Con ROUTER_MODE=llm los embeddings solo preseleccionan
+    # (umbral bajo) y el LLM confirma; sin LLM decide el umbral alto.
+    FORM_CANDIDATE_MIN_SCORE: float = 0.5
+    FORM_MATCH_MIN_SCORE: float = 0.6
+    # Firma de los enlaces. Vacio: se genera uno al arrancar y los enlaces emitidos
+    # dejan de valer al reiniciar, que con 15 minutos de vida no importa.
+    DOWNLOAD_SECRET: str = ""
+
+    # --- Formatos en OneDrive / SharePoint (Microsoft Graph) ---
+    # "": subida desactivada; el enlace publico se pega a mano o se usa el firmado.
+    # "app": cuenta institucional, sin inicio de sesion (client credentials). Requiere
+    #   consentimiento del administrador del tenant y que permita enlaces anonimos.
+    # "user": cuenta personal; se inicia sesion una vez con `python -m scripts.onedrive_login`.
+    ONEDRIVE_MODE: Literal["", "app", "user"] = ""
+    # Tenant de la universidad en modo app; "consumers" para cuentas personales.
+    ONEDRIVE_TENANT_ID: str = "consumers"
+    ONEDRIVE_CLIENT_ID: str = ""
+    ONEDRIVE_CLIENT_SECRET: str = ""  # solo modo app
+    # Solo modo app: correo de la cuenta cuyo OneDrive guarda los formatos.
+    ONEDRIVE_DRIVE_USER: str = ""
+    ONEDRIVE_FOLDER: str = "Sara/Formatos"
+    # Solo modo user: cache del token, fuera de git. Contiene un refresh token.
+    ONEDRIVE_TOKEN_CACHE: str = "storage/onedrive_token.json"
 
     # --- Procesamiento / chunking ---
     CHUNK_SIZE: int = 1000

@@ -1,3 +1,5 @@
+import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -13,6 +15,9 @@ class ChatRequest(BaseModel):
     # Turnos previos de la conversacion en curso. El servidor no guarda nada entre
     # peticiones: borrar la conversacion es responsabilidad del cliente (el quiosco).
     history: list[ChatTurn] = Field(default_factory=list)
+    # Opcional: identificador que el cliente genera por conversacion para agrupar los
+    # turnos en el log. No da memoria al servidor.
+    conversation_id: str | None = Field(default=None, max_length=64)
 
 
 class ChatSource(BaseModel):
@@ -21,7 +26,20 @@ class ChatSource(BaseModel):
     chunk: str
 
 
+class ChatDownload(BaseModel):
+    """Formato que el estudiante puede llevarse: el quiosco convierte url en un QR."""
+
+    document_id: uuid.UUID
+    filename: str
+    url: str
+    # Imagen PNG del QR de url, generada por el backend: el cliente solo la muestra.
+    qr_url: str
+    # None: url es el enlace publico del formato y no caduca.
+    expires_at: datetime | None
+
+
 class ChatResponse(BaseModel):
     question: str
     answer: str
     sources: list[ChatSource]
+    downloads: list[ChatDownload] = Field(default_factory=list)

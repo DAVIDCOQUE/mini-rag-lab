@@ -1,0 +1,235 @@
+@use '../../../styles/motion' as motion;
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gutter-tight);
+}
+
+// Misma barra de metricas que la Biblioteca.
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-5);
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.metrics__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.metric__value {
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+
+  &--ok {
+    color: var(--ok-text);
+  }
+
+  &--info {
+    color: var(--accent-text);
+  }
+
+  &--warn {
+    color: var(--warn-text);
+  }
+}
+
+.metric__label {
+  font-size: var(--text-caption-size);
+  color: var(--text-tertiary);
+}
+
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// -----------------------------------------------------------------------------
+// Filtros
+// -----------------------------------------------------------------------------
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.filters__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filters__search {
+  flex: 1 1 16rem;
+}
+
+.filters__date {
+  flex: 0 1 11rem;
+}
+
+.filters__count {
+  margin-left: var(--space-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+// -----------------------------------------------------------------------------
+// Lista
+// -----------------------------------------------------------------------------
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.entry {
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur-fast) var(--ease-out);
+
+  @include motion.hover-only {
+    border-color: var(--border-strong);
+  }
+
+  &--open {
+    border-color: var(--border-strong);
+  }
+}
+
+.entry__head {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry__time {
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry__turn {
+  color: var(--text-tertiary);
+}
+
+.entry__question {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: var(--weight-semibold);
+}
+
+.entry__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
+.entry__ms {
+  min-width: 3.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.entry__answer {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--surface-sunken);
+  white-space: pre-line;
+}
+
+.entry__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+
+  dt {
+    color: var(--text-tertiary);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.entries__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+}
+
+.log__privacy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
+// En pantallas estrechas la pregunta pasa a su propia linea.
+@media (max-width: 720px) {
+  .entry__head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .entry__question {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    white-space: normal;
+  }
+}
