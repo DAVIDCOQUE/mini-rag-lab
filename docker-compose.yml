@@ -36,6 +36,10 @@ services:
       # y no tiene sentido duplicar varios GB dentro de un volumen.
       OLLAMA_URL: http://host.docker.internal:11434
       LLM_MODEL: ${LLM_MODEL:?define LLM_MODEL en el .env de la raiz}
+      # Login del mantenedor y clave del quiosco; vacias, el mantenedor queda abierto.
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      KIOSK_API_KEY: ${KIOSK_API_KEY:-}
     volumes:
       - uploads:/app/storage
     extra_hosts:
