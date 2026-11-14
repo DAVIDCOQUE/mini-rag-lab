@@ -4,7 +4,7 @@ from pathlib import Path
 
 import segno
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
@@ -96,7 +96,7 @@ def download_document(token: str, db: Session = Depends(get_db)) -> FileResponse
 
 
 @router.get("/download/qr", response_class=Response)
-def download_qr(token: str) -> Response:
+def download_qr(token: str, request: Request) -> Response:
     """Imagen PNG del QR que lleva al enlace de descarga, para el quiosco y el mantenedor.
 
     Solo verifica la firma: si el formato deja de serlo, el QR sigue dibujandose pero la
@@ -106,7 +106,8 @@ def download_qr(token: str) -> Response:
         download_service.read_token(token)
     except InvalidDownloadTokenError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El enlace no es válido o ya caducó.")
-    return Response(content=_qr_png(download_service.url_for(token)), media_type="image/png")
+    url = download_service.url_for(token, str(request.base_url))
+    return Response(content=_qr_png(url), media_type="image/png")
 
 
 # Despues de /download/qr: declarada antes, "download" se intentaria leer como un id.

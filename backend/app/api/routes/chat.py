@@ -3,7 +3,7 @@ import time
 import uuid
 from collections.abc import Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from qdrant_client.models import ScoredPoint
 from sqlalchemy.orm import Session
 
@@ -23,7 +23,7 @@ router = APIRouter(tags=["chat"])
 
 
 @router.post("/chat", response_model=ChatResponse, dependencies=[Depends(guard_chat)])
-def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
+def chat(request: ChatRequest, http_request: Request, db: Session = Depends(get_db)) -> ChatResponse:
     """RAG conversacional. El router decide si la pregunta necesita el corpus o no."""
     logger.info("Pregunta recibida: %s", request.message)
 
@@ -70,7 +70,10 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
 
     # outcome.forms son solo los formatos entregados: los ofrecidos van en el texto.
     return ChatResponse(
-        question=request.message, answer=outcome.answer, sources=sources, downloads=_downloads(outcome.forms)
+        question=request.message,
+        answer=outcome.answer,
+        sources=sources,
+        downloads=_downloads(outcome.forms, str(http_request.base_url)),
     )
 
 
@@ -87,7 +90,7 @@ def _resolve_documents(db: Session, points: Sequence[ScoredPoint]) -> dict[str, 
     return documents
 
 
-def _downloads(forms: Sequence[tuple[Document, float]]) -> list[ChatDownload]:
+def _downloads(forms: Sequence[tuple[Document, float]], request_base: str | None = None) -> list[ChatDownload]:
     """Enlace de cada formato elegido: el publico si lo tiene, si no uno temporal firmado."""
     downloads = []
     for form, _ in forms:
@@ -97,12 +100,12 @@ def _downloads(forms: Sequence[tuple[Document, float]]) -> list[ChatDownload]:
                     document_id=form.id,
                     filename=form.original_name,
                     url=form.public_url,
-                    qr_url=download_service.public_qr_url(form.id),
+                    qr_url=download_service.public_qr_url(form.id, request_base),
                     expires_at=None,
                 )
             )
             continue
-        link = download_service.create_link(form.id)
+        link = download_service.create_link(form.id, request_base=request_base)
         downloads.append(
             ChatDownload(
                 document_id=form.id,

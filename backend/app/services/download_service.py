@@ -25,30 +25,36 @@ class DownloadLink:
     expires_at: datetime
 
 
-def create_link(document_id: uuid.UUID, now: float | None = None) -> DownloadLink:
+def create_link(document_id: uuid.UUID, now: float | None = None, request_base: str | None = None) -> DownloadLink:
     """Enlace temporal y firmado para descargar el documento desde el celular."""
     expires = int((now if now is not None else time.time()) + settings.DOWNLOAD_LINK_TTL_MINUTES * 60)
     payload = f"{document_id}:{expires}"
     token = f"{_encode(payload.encode())}.{_encode(_sign(payload))}"
     return DownloadLink(
-        url=url_for(token),
-        qr_url=f"{_base()}/documents/download/qr?token={token}",
+        url=url_for(token, request_base),
+        qr_url=f"{_base(request_base)}/documents/download/qr?token={token}",
         expires_at=datetime.fromtimestamp(expires, tz=timezone.utc),
     )
 
 
-def url_for(token: str) -> str:
+def url_for(token: str, request_base: str | None = None) -> str:
     """Enlace publico de descarga que va dentro del QR."""
-    return f"{_base()}/documents/download?token={token}"
+    return f"{_base(request_base)}/documents/download?token={token}"
 
 
-def public_qr_url(document_id: uuid.UUID) -> str:
+def public_qr_url(document_id: uuid.UUID, request_base: str | None = None) -> str:
     """QR del enlace publico de un formato (OneDrive, Drive...); no caduca."""
-    return f"{_base()}/documents/{document_id}/qr"
+    return f"{_base(request_base)}/documents/{document_id}/qr"
 
 
-def _base() -> str:
-    return f"{settings.PUBLIC_BASE_URL.rstrip('/')}{settings.API_PREFIX}"
+def _base(request_base: str | None = None) -> str:
+    """PUBLIC_BASE_URL si esta definida; si no, la direccion por la que llego la peticion.
+
+    Asi, quien entra por ngrok o por la IP del servidor recibe enlaces con esa misma
+    direccion, sin reconfigurar el .env cada vez que cambia.
+    """
+    base = settings.PUBLIC_BASE_URL or request_base or "http://localhost:8000"
+    return f"{base.rstrip('/')}{settings.API_PREFIX}"
 
 
 def read_token(token: str, now: float | None = None) -> uuid.UUID:

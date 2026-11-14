@@ -55,13 +55,10 @@ Pasos para quien corre el backend:
    [Contraseña del mantenedor](#contraseña-del-mantenedor).
 2. Levantar todo: `.\scripts\start-sara.ps1 -NoFrontend` desde la raíz del proyecto.
 3. En otra terminal: `ngrok http 8000`. Copiar la URL `https://….ngrok-free.app` que muestra.
-4. **Para que los QR funcionen desde un celular,** poner esa URL en el `backend/.env` y reiniciar
-   el backend:
-   ```
-   PUBLIC_BASE_URL=https://xxxx.ngrok-free.app
-   ```
-   Con `localhost`, el QR se genera pero el celular no puede abrirlo. Cada vez que ngrok cambie de
-   URL hay que actualizarlo.
+4. Dejar **`PUBLIC_BASE_URL` vacío** en `backend/.env`. Así los enlaces y los QR salen con la
+   misma dirección por la que entró Unity (la de ngrok), sin reconfigurar nada cuando ngrok cambie
+   de URL. Si tiene `http://localhost:8000`, Unity recibe un `qr_url` que en su máquina no existe y
+   **el QR no se ve**.
 5. Pasarle la URL al compañero de Unity.
 
 Del lado de Unity:
@@ -301,8 +298,19 @@ El enlace firmado no se puede modificar para bajar otro documento. Si en el mant
 deja de serlo, sus enlaces dejan de funcionar al instante.
 
 **Requisito de red:** el celular del estudiante tiene que poder abrir `url`. Con enlaces del backend,
-la dirección sale de `PUBLIC_BASE_URL` (ver [ngrok](#probar-juntos-con-ngrok)); con enlaces de
-OneDrive funciona desde cualquier celular con internet.
+la dirección es la misma por la que el quiosco llamó al backend, o `PUBLIC_BASE_URL` si está
+definida (ver [ngrok](#probar-juntos-con-ngrok)); con enlaces de OneDrive o Drive funciona desde
+cualquier celular con internet.
+
+**Si el QR no se ve en Unity:**
+
+- **Sale una imagen rota o un signo de interrogación:** `qr_url` apunta a una dirección que la
+  máquina de Unity no alcanza (por ejemplo `localhost`), o falta la cabecera
+  `ngrok-skip-browser-warning` en la descarga de la imagen y ngrok devuelve su página HTML en lugar
+  del PNG. El método `LoadQr` del ejemplo envía la cabecera.
+- **Sale borroso:** la textura se está suavizando al escalarla. Usar
+  `texture.filterMode = FilterMode.Point` y mostrarla sin compresión ni mipmaps; un QR borroso puede
+  no escanearse.
 
 ---
 
@@ -390,8 +398,11 @@ public class SaraClient : MonoBehaviour
         using var req = UnityWebRequestTexture.GetTexture(download.qr_url);
         SetHeaders(req);
         yield return req.SendWebRequest();
-        if (req.result == UnityWebRequest.Result.Success)
-            onLoaded(DownloadHandlerTexture.GetContent(req));
+        if (req.result != UnityWebRequest.Result.Success) yield break;
+        var texture = DownloadHandlerTexture.GetContent(req);
+        // Sin suavizado: un QR borroso puede no escanearse.
+        texture.filterMode = FilterMode.Point;
+        onLoaded(texture);
     }
 
     // Botón "Terminar", fin de la cuenta atrás o nadie delante del quiosco.
